@@ -1,0 +1,227 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* TajEats Design System - Tajik-inspired colors with glassmorphism
+All colors MUST be HSL. Warm palette: reds, golds, greens, earthy tones
+*/
+
+@layer base {
+  :root {
+    /* Base colors - warm cream background */
+    --background: 40 15% 97%;
+    --foreground: 25 15% 15%;
+
+    /* Glass morphism cards - semi-transparent with warm tint */
+    --card: 40 20% 98%;
+    --card-foreground: 25 15% 15%;
+
+    /* Popover with glass effect */
+    --popover: 40 25% 96%;
+    --popover-foreground: 25 15% 15%;
+
+    /* Primary - Tajik red/crimson */
+    --primary: 355 75% 55%;
+    --primary-foreground: 0 0% 98%;
+
+    /* Secondary - warm gold */
+    --secondary: 45 65% 85%;
+    --secondary-foreground: 25 25% 25%;
+
+    /* Muted - soft cream */
+    --muted: 40 25% 92%;
+    --muted-foreground: 25 15% 45%;
+
+    /* Accent - Tajik green */
+    --accent: 140 35% 65%;
+    --accent-foreground: 0 0% 98%;
+
+    /* Destructive - warm red */
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Borders and inputs - subtle warm tones */
+    --border: 40 20% 88%;
+    --input: 40 20% 94%;
+    --ring: 355 75% 55%;
+
+    /* Enhanced radius for modern look */
+    --radius: 12px;
+
+    /* Glassmorphism variables */
+    --glass-bg: 0 0% 100% / 0.15;
+    --glass-border: 0 0% 100% / 0.2;
+    --glass-shadow: 0 8px 32px 0 / 0.37;
+
+    /* Gradient definitions */
+    --gradient-primary: linear-gradient(135deg, hsl(355 75% 55%), hsl(25 85% 65%));
+    --gradient-secondary: linear-gradient(135deg, hsl(45 65% 85%), hsl(40 55% 75%));
+    --gradient-accent: linear-gradient(135deg, hsl(140 35% 65%), hsl(120 40% 55%));
+    --gradient-hero: linear-gradient(135deg, hsl(355 75% 45%) 0%, hsl(25 85% 55%) 50%, hsl(45 75% 65%) 100%);
+
+    /* Shadow system */
+    --shadow-sm: 0 2px 4px 0 hsl(0 0% 0% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.06);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -2px hsl(0 0% 0% / 0.05);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.1), 0 10px 10px -5px hsl(0 0% 0% / 0.04);
+    --shadow-glass: 0 8px 32px 0 hsl(31 38% 58% / 0.37);
+
+    /* Animation variables */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Dark mode with warm undertones */
+    --background: 25 15% 8%;
+    --foreground: 40 15% 92%;
+
+    /* Dark glass cards */
+    --card: 25 20% 12%;
+    --card-foreground: 40 15% 92%;
+
+    /* Dark popover */
+    --popover: 25 25% 10%;
+    --popover-foreground: 40 15% 92%;
+
+    /* Primary - slightly desaturated for dark mode */
+    --primary: 355 70% 60%;
+    --primary-foreground: 0 0% 98%;
+
+    /* Secondary - muted gold for dark mode */
+    --secondary: 45 35% 25%;
+    --secondary-foreground: 40 15% 92%;
+
+    /* Muted - dark warm tones */
+    --muted: 25 20% 18%;
+    --muted-foreground: 40 10% 65%;
+
+    /* Accent - muted green for dark mode */
+    --accent: 140 25% 45%;
+    --accent-foreground: 0 0% 98%;
+
+    /* Destructive - softer red for dark mode */
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Dark borders and inputs */
+    --border: 25 20% 22%;
+    --input: 25 20% 16%;
+    --ring: 355 70% 60%;
+
+    /* Dark glass variables */
+    --glass-bg: 0 0% 0% / 0.25;
+    --glass-border: 0 0% 100% / 0.1;
+    --glass-shadow: 0 8px 32px 0 / 0.5;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* Glass morphism utility classes */
+  .glass {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  }
+
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  }
+
+  /* Hero button variant */
+  .btn-hero {
+    background: var(--gradient-primary);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    transition: var(--transition-smooth);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .btn-hero:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-xl);
+  }
+
+  /* Card hover effects */
+  .card-hover {
+    transition: var(--transition-smooth);
+  }
+
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.8);
+  }
+}

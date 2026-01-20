@@ -1,0 +1,37 @@
+package com.tajeats.tajeats_backend.model;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+@Getter
+@Setter
+@Entity
+@Table(name = "restaurants")
+public class Restaurant {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+    private String image;
+    private String logo;
+    private String category;
+    private Double rating;
+    private Integer reviewCount;
+    private String deliveryTime;
+    private BigDecimal deliveryFee;
+    private String description;
+    private Boolean isOpen;
+
+    @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL)
+    private List<Dish> dishes;
+
+    @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL)
+    private List<Review> reviews;
+
+}
