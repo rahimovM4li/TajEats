@@ -28,12 +28,19 @@ import apiClient from '@/lib/api';
 
 const RestaurantDashboard: React.FC = () => {
     const { restaurants, dishes, orders, reviews, deleteDish, refreshReviews } = useData();
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const [activeTab, setActiveTab] = useState('overview');
 
+    // Check if user has a restaurant linked
+    if (!user?.restaurantId) {
+        // Redirect to restaurant setup if no restaurant is linked
+        window.location.href = '/restaurant/setup';
+        return null;
+    }
+
     // Get restaurant ID from authenticated user
-    const restaurantId = user?.restaurantId || restaurants[0]?.id || '1';
-    const restaurant = restaurants.find(r => r.id === restaurantId) || restaurants[0];
+    const restaurantId = user.restaurantId;
+    const restaurant = restaurants.find(r => r.id === restaurantId);
     
     const restaurantOrders = orders.filter(o => o.restaurantId === restaurantId);
     const restaurantDishes = dishes.filter(d => d.restaurantId === restaurantId);
@@ -84,6 +91,11 @@ const RestaurantDashboard: React.FC = () => {
         }
     ];
 
+    const handleLogout = () => {
+        logout();
+        window.location.href = '/restaurant';
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
             {/* Header */}
@@ -108,11 +120,9 @@ const RestaurantDashboard: React.FC = () => {
                             <Button variant="ghost" size="icon">
                                 <Settings className="w-5 h-5" />
                             </Button>
-                            <Link to="/restaurant">
-                                <Button variant="ghost" size="icon">
-                                    <LogOut className="w-5 h-5" />
-                                </Button>
-                            </Link>
+                            <Button variant="ghost" size="icon" onClick={handleLogout}>
+                                <LogOut className="w-5 h-5" />
+                            </Button>
                         </div>
                     </div>
                 </div>

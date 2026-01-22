@@ -73,3 +73,32 @@ export interface ApiErrorResponse {
   message: string;
   path: string;
 }
+
+// User & Auth Types
+export interface UserDTO {
+  id: number;
+  email: string;
+  name: string;
+  role: 'ADMIN' | 'RESTAURANT_OWNER' | 'CUSTOMER';
+  restaurantId?: number;
+  isApproved: boolean;
+  createdAt: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  name: string;
+  email: string;
+  password: string;
+  role: 'RESTAURANT_OWNER' | 'CUSTOMER';
+}
+
+export interface AuthResponse {
+  token: string;
+  user: UserDTO;
+  message?: string;
+}

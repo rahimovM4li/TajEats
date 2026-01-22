@@ -21,9 +21,15 @@ public class Dish {
     private Restaurant restaurant;
 
     private String name;
+    
+    @Column(columnDefinition = "TEXT")
     private String description;
+    
     private BigDecimal price;
+    
+    @Column(columnDefinition = "TEXT")
     private String image;
+    
     private String category;
     private Boolean isAvailable;
     private Boolean isPopular;

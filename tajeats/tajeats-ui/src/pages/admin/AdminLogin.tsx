@@ -39,21 +39,36 @@ const AdminLogin: React.FC = () => {
         setIsLoading(true);
 
         try {
-            const success = await login(formData.email, formData.password, 'admin');
+            const result = await login(formData.email, formData.password);
 
-            if (success) {
+            if (result.success && result.user) {
+                // Check if user has admin role
+                if (result.user.role !== 'admin') {
+                    logout();
+                    toast({
+                        title: "Access denied",
+                        description: "This portal is for administrators only.",
+                        variant: "destructive",
+                    });
+                    return;
+                }
+                
                 toast({
                     title: "Admin login successful",
                     description: "Welcome to the admin dashboard!",
                 });
                 navigate('/admin/dashboard');
             } else {
-                throw new Error('Invalid credentials');
+                toast({
+                    title: "Login failed",
+                    description: result.message || "Please check your credentials and try again.",
+                    variant: "destructive",
+                });
             }
         } catch (error) {
             toast({
                 title: "Login failed",
-                description: "Please check your credentials and try again.",
+                description: "An error occurred. Please try again.",
                 variant: "destructive",
             });
         } finally {

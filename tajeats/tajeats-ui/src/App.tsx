@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { DataProvider } from "@/contexts/DataContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
@@ -19,10 +21,13 @@ import OrderStatus from "./pages/OrderStatus.tsx";
 import About from "./pages/About.tsx";
 import Contact from "./pages/Contact.tsx";
 import BecomeRider from "./pages/BecomeRider.tsx";
+import CustomerRegister from "./pages/CustomerRegister.tsx";
 
 // Restaurant Portal
 import RestaurantLogin from "./pages/restaurant/RestaurantLogin.tsx";
+import RestaurantRegister from "./pages/restaurant/RestaurantRegister.tsx";
 import RestaurantDashboard from "./pages/restaurant/RestaurantDashboard.tsx";
+import RestaurantSetup from "./pages/restaurant/RestaurantSetup.tsx";
 
 // Admin Portal
 import AdminLogin from "./pages/admin/AdminLogin.tsx";
@@ -33,16 +38,17 @@ import NotFound from "./pages/NotFound.tsx";
 const queryClient = new QueryClient();
 
 const App = () => (
-    <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-            <AuthProvider>
-                <DataProvider>
-                    <CartProvider>
-                        <Toaster />
-                        <Sonner />
-                        <BrowserRouter>
-                            <Header />
-                            <Routes>
+    <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+            <TooltipProvider>
+                <AuthProvider>
+                    <DataProvider>
+                        <CartProvider>
+                            <Toaster />
+                            <Sonner />
+                            <BrowserRouter>
+                                <Header />
+                                <Routes>
                                 {/* Customer Routes */}
                                 <Route path="/" element={<Landing />} />
                                 <Route path="/restaurants" element={<Restaurants />} />
@@ -53,14 +59,30 @@ const App = () => (
                                 <Route path="/about" element={<About />} />
                                 <Route path="/contact" element={<Contact />} />
                                 <Route path="/become-rider" element={<BecomeRider />} />
+                                <Route path="/register" element={<CustomerRegister />} />
 
                                 {/* Restaurant Portal */}
                                 <Route path="/restaurant" element={<RestaurantLogin />} />
-                                <Route path="/restaurant/dashboard" element={<RestaurantDashboard />} />
+                                <Route path="/restaurant/register" element={<RestaurantRegister />} />
+                                <Route path="/restaurant/setup" element={
+                                    <ProtectedRoute requiredRole="restaurant">
+                                        <RestaurantSetup />
+                                    </ProtectedRoute>
+                                } />
+                                <Route path="/restaurant/dashboard" element={
+                                    <ProtectedRoute requiredRole="restaurant">
+                                        <RestaurantDashboard />
+                                    </ProtectedRoute>
+                                } />
 
                                 {/* Admin Portal */}
                                 <Route path="/admin" element={<AdminLogin />} />
-                                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                                <Route path="/admin/login" element={<AdminLogin />} />
+                                <Route path="/admin/dashboard" element={
+                                    <ProtectedRoute requiredRole="admin">
+                                        <AdminDashboard />
+                                    </ProtectedRoute>
+                                } />
 
                                 {/* 404 - Keep this last */}
                                 <Route path="*" element={<NotFound />} />
@@ -72,6 +94,7 @@ const App = () => (
             </AuthProvider>
         </TooltipProvider>
     </QueryClientProvider>
+    </ErrorBoundary>
 );
 
 export default App;

@@ -3,6 +3,7 @@ package com.tajeats.tajeats_backend.controller;
 import com.tajeats.tajeats_backend.dto.RestaurantDTO;
 import com.tajeats.tajeats_backend.service.RestaurantService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,16 +30,19 @@ public class RestaurantController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'RESTAURANT_OWNER')")
     public ResponseEntity<RestaurantDTO> createRestaurant(@RequestBody RestaurantDTO dto) {
         return ResponseEntity.ok(restaurantService.create(dto));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RESTAURANT_OWNER')")
     public ResponseEntity<RestaurantDTO> updateRestaurant(@PathVariable Long id, @RequestBody RestaurantDTO dto) {
         return ResponseEntity.ok(restaurantService.update(id, dto));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteRestaurant(@PathVariable Long id) {
         restaurantService.delete(id);
         return ResponseEntity.noContent().build();
