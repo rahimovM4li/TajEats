@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const RestaurantLogin: React.FC = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
-    const { login, user } = useAuth();
+    const { login, logout, user } = useAuth();
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -40,21 +40,45 @@ const RestaurantLogin: React.FC = () => {
         setIsLoading(true);
 
         try {
-            const success = await login(formData.email, formData.password, 'restaurant');
+            const result = await login(formData.email, formData.password);
 
-            if (success) {
+            if (result.success && result.user) {
+                // Check if user has restaurant role
+                if (result.user.role !== 'restaurant') {
+                    logout();
+                    toast({
+                        title: "Access denied",
+                        description: "This portal is for restaurant owners only.",
+                        variant: "destructive",
+                    });
+                    return;
+                }
+                
                 toast({
                     title: "Login successful",
                     description: "Welcome to your restaurant dashboard!",
                 });
                 navigate('/restaurant/dashboard');
             } else {
-                throw new Error('Invalid credentials');
+                // Handle pending approval or other errors
+                if (result.message?.includes('pending approval')) {
+                    toast({
+                        title: "Account pending approval",
+                        description: "Your account is awaiting admin approval. Please check back later.",
+                        variant: "default",
+                    });
+                } else {
+                    toast({
+                        title: "Login failed",
+                        description: result.message || "Please check your credentials and try again.",
+                        variant: "destructive",
+                    });
+                }
             }
         } catch (error) {
             toast({
                 title: "Login failed",
-                description: "Please check your credentials and try again.",
+                description: "An error occurred. Please try again.",
                 variant: "destructive",
             });
         } finally {

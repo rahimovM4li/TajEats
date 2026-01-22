@@ -1,15 +1,18 @@
 # TajEats - AI Coding Assistant Instructions
 
 ## Project Overview
-TajEats is a full-stack food delivery application with a React/TypeScript frontend and Spring Boot backend. **Frontend and backend are now FULLY INTEGRATED** - the frontend communicates with the backend via REST APIs, and all data is persisted in PostgreSQL.
+TajEats is a full-stack food delivery application with a React/TypeScript frontend and Spring Boot backend. **Frontend and backend are now FULLY INTEGRATED** - the frontend communicates with the backend via REST APIs with **JWT authentication**, and all data is persisted in PostgreSQL.
 
 ## Architecture
 
 ### Backend (`tajeats-be/`)
-- **Spring Boot 3.5.6** with Java 17
+- **Spring Boot 3.5.6** with Java 17 + **Spring Security 6.5.5**
+- **JWT Authentication** with 24-hour token expiration (jjwt 0.12.3)
 - **PostgreSQL** database on `localhost:4424` (db: `tajeats`, user: `tajeats_user`)
-- **Package structure**: `com.tajeats.tajeats_backend.{controller,service,repository,model,dto}`
+- **Package structure**: `com.tajeats.tajeats_backend.{controller,service,repository,model,dto,security,exception}`
+- **Security**: BCrypt password encoding, role-based access control (ADMIN, RESTAURANT_OWNER, CUSTOMER)
 - **Entity relationships**: 
+  - `User` → Authentication and authorization (separate from customers in orders)
   - `Restaurant` → `OneToMany` → `Dish`, `Review`
   - `Dish` → `ManyToOne` → `Restaurant`
   - `Order` → `ManyToOne` → `Restaurant` and `OneToMany` → `CartItem`
@@ -25,11 +28,12 @@ TajEats is a full-stack food delivery application with a React/TypeScript fronte
 ### Frontend (`tajeats-ui/`)
 - **React 18.3** + **TypeScript** + **Vite** with SWC
 - **shadcn/ui** components (Radix UI) + **Tailwind CSS**
-- **Path alias**: `@/` → `./src/` (configured in [vite.config.ts](tajeats-ui/vite.config.ts) and [tsconfig.json](tajeats-ui/tsconfig.json))
-- **Context-based state**: `AuthContext`, `CartContext`, `DataContext` (no Redux)
-- **React Router v6** with customer/restaurant/admin portals
-- **API Integration**: Axios-based API client ([api.ts](tajeats-ui/src/lib/api.ts)) with session management
-- **Services Layer**: Separate service files for each entity (`restaurantService.ts`, `dishService.ts`, etc.)
+- **Path alias**: `@/` → `./src/` (configured in vite.config.ts and tsconfig.json)
+- **Context-based state**: `AuthContext` (JWT auth), `CartContext`, `DataContext` (no Redux)
+- **React Router v6** with customer/restaurant/admin portals and protected routes
+- **API Integration**: Axios-based API client (api.ts) with JWT token injection and session management
+- **Services Layer**: Separate service files for each entity (`authService.ts`, `userService.ts`, `restaurantService.ts`, etc.)
+- **Token Management**: localStorage-based JWT storage with expiration checking
 
 **Key patterns:**
 - UI components import from `@/components/ui/*` (shadcn convention)
@@ -98,13 +102,18 @@ See [RestaurantService.java](tajeats-be/src/main/java/com/tajeats/tajeats_backen
 
 ## Important Gotchas
 
-1. **✅ Frontend-Backend Integration Complete**: Frontend now communicates with backend via REST API
-2. **Session Management**: Frontend uses X-Session-ID header for tracking user sessions
-3. **Entity cycles**: Be careful with JSON serialization of JPA relationships (potential infinite loops)
-4. **PostgreSQL port**: Non-standard `4424` instead of `5432`
-5. **Image Storage**: Local filesystem storage with interface abstraction for future S3/MinIO migration
-6. **Type Conversions**: Frontend uses string IDs, backend uses Long IDs - conversion happens in DataContext
-7. **Manual DTO Mapping**: No ModelMapper - all mapping is explicit in service layer
+1. **✅ Frontend-Backend Integration Complete**: Frontend now communicates with backend via REST API with JWT authentication
+2. **JWT Token Management**: Tokens stored in localStorage, auto-injected in API requests, 24h expiration
+3. **User Approval Workflow**: Restaurant owners need admin approval before accessing dashboard
+4. **Session Management**: Frontend uses X-Session-ID header for cart tracking (separate from auth)
+5. **Entity cycles**: Be careful with JSON serialization of JPA relationships (potential infinite loops)
+6. **PostgreSQL port**: Non-standard `4424` instead of `5432`
+7. **Image Storage**: Local filesystem storage with interface abstraction for future S3/MinIO migration
+8. **Type Conversions**: Frontend uses string IDs, backend uses Long IDs - conversion happens in DataContext
+9. **Manual DTO Mapping**: No ModelMapper - all mapping is explicit in service layer
+10. **CORS Configuration**: Allows localhost:5173 and localhost:5174 for development
+11. **Password Security**: BCrypt with 10 rounds, never store plain text passwords
+12. **Role Prefix**: Spring Security requires "ROLE_" prefix in authorities (handled in CustomUserDetailsService)
 
 ## When Adding Features
 
@@ -170,6 +179,216 @@ When using `replace_string_in_file` or `multi_replace_string_in_file`:
 2. Match indentation EXACTLY
 3. Copy-paste from file content - don't retype
 4. Test the replacement mentally before executing
+
+## JWT Authentication System ✅ COMPLETE
+
+### Authentication Flow
+1. **Registration**: 
+   - Customers: Auto-approved (`isApproved=true`)
+   - Restaurant Owners: Require admin approval (`isApproved=false`)
+   - Endpoint: `POST /api/auth/register`
+   
+2. **Login**: 
+   - Validates credentials with BCrypt
+   - Checks approval status for restaurant owners
+   - Returns JWT token (24h expiration) + user info
+   - Endpoint: `POST /api/auth/login`
+   
+3. **Token Usage**:
+   - Stored in localStorage (`tajeats_jwt_token`)
+   - Injected as `Bearer` token in Authorization header
+   - Validated on each protected endpoint
+   - Expires after 86400000ms (24 hours)
+
+### Backend Components
+
+#### Security Infrastructure
+- **JwtUtil.java** - Token generation/validation using jjwt 0.12.3
+  - `generateToken()` - Creates JWT with HS256 signature
+  - `validateToken()` - Verifies token and expiration
+  - `extractUsername()` - Extracts email from token claims
+  - Uses `parser()` API (not deprecated `parserBuilder()`)
+  
+- **JwtAuthenticationFilter.java** - OncePerRequestFilter
+  - Extracts Bearer token from Authorization header
+  - Validates token and sets SecurityContext
+  - Runs before UsernamePasswordAuthenticationFilter
+  
+- **CustomUserDetailsService.java** - UserDetailsService implementation
+  - Loads user by email
+  - Checks approval status for RESTAURANT_OWNER
+  - Returns authorities with "ROLE_" prefix
+  
+- **SecurityConfig.java** - SecurityFilterChain configuration
+  - Public endpoints: `/api/auth/**`, GET `/api/restaurants/**`, `/api/dishes/**`, `/api/reviews/**`, POST `/api/orders`
+  - CORS: Allows `http://localhost:5173` and `http://localhost:5174`
+  - Stateless session management
+  - BCrypt password encoder bean
+
+#### User Management
+- **User.java** - Entity with JPA annotations
+  ```java
+  @Entity
+  @Table(name = "users")
+  - id (Long, auto-generated)
+  - email (String, unique, not null)
+  - password (String, BCrypt hash)
+  - name (String)
+  - role (Enum: ADMIN, RESTAURANT_OWNER, CUSTOMER)
+  - restaurantId (Long, nullable)
+  - isApproved (Boolean)
+  - createdAt, updatedAt (LocalDateTime)
+  ```
+
+- **UserService.java** - Business logic
+  - `registerUser()` - Creates user, sets approval based on role
+  - `authenticate()` - Validates credentials, generates JWT
+  - `getUserByEmail()` - Retrieves user info
+  - `getPendingUsers()` - Returns unapproved restaurant owners
+  - `approveUser()` - Sets isApproved=true
+  - `rejectUser()` - Deletes user
+
+- **AuthController.java** - REST endpoints
+  - `POST /api/auth/register` - User registration
+  - `POST /api/auth/login` - Authentication
+  - `GET /api/auth/me` - Get current user (requires auth)
+  
+- **UserController.java** - Admin-only endpoints
+  - `GET /api/users/pending` - List pending approvals (`@PreAuthorize("hasRole('ADMIN')")`)
+  - `PUT /api/users/{id}/approve` - Approve restaurant owner
+  - `DELETE /api/users/{id}/reject` - Reject and delete user
+
+#### DTOs and Exceptions
+- **RegisterRequest** - name, email, password, role
+- **LoginRequest** - email, password
+- **AuthResponse** - token, user (UserDTO), message
+- **UserDTO** - id, email, name, role, restaurantId, isApproved, createdAt
+- **UserAlreadyExistsException** - Email conflict
+- **InvalidCredentialsException** - Wrong credentials
+- **AccountPendingApprovalException** - Not approved yet
+
+#### Configuration
+```properties
+# application.properties
+jwt.secret=TajEatsSecretKeyForJWTTokenGenerationAndValidation2026MustBeAtLeast256BitsLong
+jwt.expiration=86400000
+```
+
+#### Admin Initialization
+- **init-admin.sql** - Creates default admin account
+  - Email: `admin@tajeats.tj`
+  - Password: `Admin123!` (BCrypt: `$2a$10$4p1IKVCo7DhhVHGsN9y7l.HD/jicBEY8G9W3ZrDTeIPjri7zVHNcW`)
+  - Role: `ADMIN`
+  - Run: `psql -h localhost -p 4424 -U tajeats_user -d tajeats -f src/main/resources/init-admin.sql`
+
+### Frontend Components
+
+#### Token Management
+- **tokenManager.ts** - JWT utilities
+  - `getToken()` - Retrieves from localStorage
+  - `setToken()` - Stores to localStorage
+  - `removeToken()` - Clears localStorage
+  - `isTokenExpired()` - Checks expiration
+  - `decodeToken()` - Parses JWT payload
+
+#### Auth Services
+- **authService.ts** - Authentication API calls
+  - `login()` - POST /auth/login, returns token + user
+  - `register()` - POST /auth/register
+  - `getCurrentUser()` - GET /auth/me
+  - `logout()` - Client-side only (removes token)
+  
+- **userService.ts** - User management API (admin only)
+  - `getPendingUsers()` - GET /users/pending
+  - `approveUser()` - PUT /users/{id}/approve
+  - `rejectUser()` - DELETE /users/{id}/reject
+
+#### Context & Protection
+- **AuthContext.tsx** - Global auth state
+  - Loads token on mount, validates expiration
+  - `login()` - Authenticates, saves token, returns user
+  - `logout()` - Clears token and state
+  - `isAuthenticated` - Checks token validity + approval status
+  - Converts backend Role enum to frontend lowercase
+  
+- **ProtectedRoute.tsx** - Route guard component
+  - Checks authentication before rendering
+  - Validates user role matches requiredRole
+  - Redirects to appropriate login page
+  - Checks restaurant owner approval status
+
+#### API Integration
+- **api.ts** - Axios interceptor updates
+  - Request: Injects `Authorization: Bearer ${token}` header
+  - Response: Handles 401/403 errors, redirects to login
+  - On 401: Removes token, redirects to /admin/login or /restaurant/login
+  - On 403: Checks for "pending approval" message
+
+#### Authentication Pages
+- **AdminLogin.tsx** - Admin portal login
+  - Validates role === 'admin' from login result
+  - Redirects to /admin/dashboard on success
+  - Route: `/admin` and `/admin/login`
+  
+- **RestaurantLogin.tsx** - Restaurant owner login
+  - Validates role === 'restaurant'
+  - Shows pending approval message if not approved
+  - Redirects to /restaurant/dashboard on success
+  - Link to /restaurant/register
+  
+- **RestaurantRegister.tsx** - Restaurant owner registration
+  - Form with name, email, password, confirmPassword
+  - Password validation: 8+ chars, uppercase, lowercase, number
+  - Role: `RESTAURANT_OWNER`
+  - Shows blue badge: "Admin Approval Required"
+  - Redirects to /restaurant after 2 seconds
+  
+- **CustomerRegister.tsx** - Customer registration
+  - Same validation as restaurant registration
+  - Role: `CUSTOMER`
+  - Shows green badge: "Instant Activation"
+  - Redirects to `/` after 1.5 seconds
+
+#### Admin Dashboard
+- **AdminDashboard.tsx** - Added "Pending Approvals" tab
+  - Fetches pending users with `getPendingUsers()`
+  - Displays table with name, email, registration date
+  - Approve button → calls `approveUser()`, shows success toast
+  - Reject button → calls `rejectUser()`, shows confirmation
+  - Badge counter shows pending count
+  - Empty state when no pending users
+
+### Protected Endpoints
+**Require Authentication:**
+- All `/api/users/**` endpoints (admin only)
+- POST/PUT/DELETE `/api/dishes/**` (admin or restaurant owner)
+- DELETE `/api/restaurants/**` (admin - planned)
+
+**Public (No Auth Required):**
+- GET `/api/restaurants/**`
+- GET `/api/dishes/**`
+- GET `/api/reviews/**`
+- POST `/api/orders`
+
+### Role-Based Access
+- **ADMIN**: Full access, user approval, system management
+- **RESTAURANT_OWNER**: Manage own restaurant and menu (after approval)
+- **CUSTOMER**: Browse, order, review (auto-approved)
+
+### Testing Credentials
+**Admin Account:**
+- Email: `admin@tajeats.tj`
+- Password: `Admin123!`
+- Access: http://localhost:5174/admin
+
+**Test Flow:**
+1. Start backend: `mvn spring-boot:run`
+2. Create admin: Run `init-admin.sql`
+3. Start frontend: `npm run dev`
+4. Register restaurant owner at `/restaurant/register`
+5. Admin logs in, approves from "Pending Approvals" tab
+6. Restaurant owner can now login
+7. Customer registers at `/register` (instant activation)
 
 ## Frontend-Backend Integration ✅ COMPLETE
 
@@ -274,3 +493,17 @@ const convertRestaurantFromAPI = (dto: RestaurantDTO): Restaurant => ({
 - [x] Session tracking via X-Session-ID
 - [x] Error handling with toast notifications
 - [x] Loading states in all contexts
+- [x] JWT authentication implemented (login/register)
+- [x] Token storage and expiration management
+- [x] Protected routes with role validation
+- [x] Admin approval workflow for restaurant owners
+- [x] User management dashboard (pending approvals)
+- [x] Password hashing with BCrypt
+- [x] Authorization with @PreAuthorize annotations
+- [x] API interceptors for automatic token injection
+- [x] Error handling for 401/403 responses
+
+---
+
+**Last Updated:** January 22, 2026  
+**Status:** ✅ JWT Authentication System Fully Implemented and Tested

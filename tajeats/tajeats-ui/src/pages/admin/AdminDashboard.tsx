@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Users,
@@ -12,7 +12,9 @@ import {
     Bell,
     Settings,
     LogOut,
-    Search
+    Search,
+    CheckCircle,
+    XCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,14 +23,78 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useData } from '@/contexts/DataContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import AddRestaurantDialog from '@/components/AddRestaurantDialog';
 import EditRestaurantDialog from '@/components/EditRestaurantDialog';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import OrderDetailsDialog from '@/components/OrderDetailsDialog';
+import type { UserDTO } from '@/types/api';
+import { getPendingUsers, approveUser, rejectUser } from '@/services/userService';
 
 const AdminDashboard: React.FC = () => {
     const { restaurants, orders, deleteRestaurant } = useData();
+    const { logout } = useAuth();
+    const { toast } = useToast();
     const [activeTab, setActiveTab] = useState('overview');
+    const [pendingUsers, setPendingUsers] = useState<UserDTO[]>([]);
+    const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
+    useEffect(() => {
+        if (activeTab === 'approvals') {
+            fetchPendingUsers();
+        }
+    }, [activeTab]);
+
+    const fetchPendingUsers = async () => {
+        setIsLoadingUsers(true);
+        try {
+            const users = await getPendingUsers();
+            setPendingUsers(users);
+        } catch (error) {
+            toast({
+                title: "Failed to fetch pending users",
+                description: "Please try again later.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsLoadingUsers(false);
+        }
+    };
+
+    const handleApprove = async (userId: number) => {
+        try {
+            await approveUser(userId);
+            toast({
+                title: "User approved",
+                description: "Restaurant owner can now access the dashboard.",
+            });
+            fetchPendingUsers();
+        } catch (error) {
+            toast({
+                title: "Failed to approve user",
+                description: "Please try again.",
+                variant: "destructive",
+            });
+        }
+    };
+
+    const handleReject = async (userId: number) => {
+        try {
+            await rejectUser(userId);
+            toast({
+                title: "User rejected",
+                description: "Registration request has been declined.",
+            });
+            fetchPendingUsers();
+        } catch (error) {
+            toast({
+                title: "Failed to reject user",
+                description: "Please try again.",
+                variant: "destructive",
+            });
+        }
+    };
 
     const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
     const activeRestaurants = restaurants.filter(r => r.isOpen).length;
@@ -75,6 +141,11 @@ const AdminDashboard: React.FC = () => {
         { name: 'Sun', orders: 67, revenue: 1100 },
     ];
 
+    const handleLogout = () => {
+        logout();
+        window.location.href = '/admin';
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
             {/* Header */}
@@ -99,11 +170,9 @@ const AdminDashboard: React.FC = () => {
                             <Button variant="ghost" size="icon">
                                 <Settings className="w-5 h-5" />
                             </Button>
-                            <Link to="/admin">
-                                <Button variant="ghost" size="icon">
-                                    <LogOut className="w-5 h-5" />
-                                </Button>
-                            </Link>
+                            <Button variant="ghost" size="icon" onClick={handleLogout}>
+                                <LogOut className="w-5 h-5" />
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -111,11 +180,19 @@ const AdminDashboard: React.FC = () => {
 
             <div className="container mx-auto px-4 py-8">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <TabsList className="grid grid-cols-4 w-full max-w-md">
+                    <TabsList className="grid grid-cols-5 w-full max-w-2xl">
                         <TabsTrigger value="overview">Overview</TabsTrigger>
                         <TabsTrigger value="restaurants">Restaurants</TabsTrigger>
                         <TabsTrigger value="orders">Orders</TabsTrigger>
                         <TabsTrigger value="users">Users</TabsTrigger>
+                        <TabsTrigger value="approvals">
+                            Pending Approvals
+                            {pendingUsers.length > 0 && (
+                                <Badge variant="destructive" className="ml-2">
+                                    {pendingUsers.length}
+                                </Badge>
+                            )}
+                        </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="overview" className="space-y-6">
@@ -396,6 +473,83 @@ const AdminDashboard: React.FC = () => {
                                         <p className="text-sm text-muted-foreground">• Support ticket management</p>
                                     </div>
                                 </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="approvals" className="space-y-6">
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-2xl font-bold">Pending Approvals</h2>
+                            <Badge variant="outline" className="text-lg px-4 py-1">
+                                {pendingUsers.length} Pending
+                            </Badge>
+                        </div>
+
+                        <Card className="glass border-border/20">
+                            <CardContent className="p-6">
+                                {isLoadingUsers ? (
+                                    <div className="text-center py-12">
+                                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                                        <p className="text-muted-foreground mt-4">Loading pending approvals...</p>
+                                    </div>
+                                ) : pendingUsers.length === 0 ? (
+                                    <div className="text-center py-12">
+                                        <CheckCircle className="w-16 h-16 text-accent mx-auto mb-4" />
+                                        <h3 className="text-xl font-semibold mb-2">All Caught Up!</h3>
+                                        <p className="text-muted-foreground">
+                                            No pending restaurant registrations at the moment.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {pendingUsers.map((user) => (
+                                            <Card key={user.id} className="border-border/20">
+                                                <CardContent className="p-6">
+                                                    <div className="flex items-start justify-between">
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-3 mb-2">
+                                                                <h3 className="text-lg font-semibold">{user.name}</h3>
+                                                                <Badge variant="outline" className="text-xs">
+                                                                    Restaurant Owner
+                                                                </Badge>
+                                                            </div>
+                                                            <p className="text-muted-foreground text-sm mb-1">
+                                                                {user.email}
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                Registered: {new Date(user.createdAt).toLocaleDateString('en-US', {
+                                                                    year: 'numeric',
+                                                                    month: 'long',
+                                                                    day: 'numeric',
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit'
+                                                                })}
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <Button
+                                                                size="sm"
+                                                                className="bg-accent hover:bg-accent/90"
+                                                                onClick={() => handleApprove(user.id)}
+                                                            >
+                                                                <CheckCircle className="w-4 h-4 mr-1" />
+                                                                Approve
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="destructive"
+                                                                onClick={() => handleReject(user.id)}
+                                                            >
+                                                                <XCircle className="w-4 h-4 mr-1" />
+                                                                Reject
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        ))}
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     </TabsContent>
