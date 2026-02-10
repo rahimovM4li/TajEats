@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Edit, Star } from 'lucide-react';
-import type { Review } from '@/lib/mockData';
+import type { Review } from '@/types/domain';
 import apiClient from '@/lib/api';
 
 interface EditReviewDialogProps {
@@ -118,11 +118,10 @@ const EditReviewDialog: React.FC<EditReviewDialogProps> = ({ review, trigger, on
                                     className="transition-transform hover:scale-110"
                                 >
                                     <Star
-                                        className={`w-8 h-8 ${
-                                            star <= (hoveredRating || rating)
+                                        className={`w-8 h-8 ${star <= (hoveredRating || rating)
                                                 ? 'text-yellow-400 fill-current'
                                                 : 'text-muted-foreground'
-                                        }`}
+                                            }`}
                                     />
                                 </button>
                             ))}

@@ -96,50 +96,109 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
+    // Calculate current and previous month data
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+    // Current month orders
+    const currentMonthOrders = orders.filter(o => {
+        const orderDate = new Date(o.createdAt);
+        return orderDate >= currentMonthStart;
+    });
+
+    // Previous month orders
+    const previousMonthOrders = orders.filter(o => {
+        const orderDate = new Date(o.createdAt);
+        return orderDate >= previousMonthStart && orderDate <= previousMonthEnd;
+    });
+
+    // Calculate metrics
     const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
     const activeRestaurants = restaurants.filter(r => r.isOpen).length;
+    
+    const currentMonthRevenue = currentMonthOrders.reduce((sum, order) => sum + order.total, 0);
+    const previousMonthRevenue = previousMonthOrders.reduce((sum, order) => sum + order.total, 0);
+    
+    const currentMonthCustomers = new Set(currentMonthOrders.map(o => o.customerPhone)).size;
+    const previousMonthCustomers = new Set(previousMonthOrders.map(o => o.customerPhone)).size;
+
+    // Calculate changes and trends
+    const calculateChange = (current: number, previous: number): { change: string; trend: "up" | "down" | "neutral" } => {
+        if (previous === 0) {
+            return current > 0 ? { change: "+100%", trend: "up" } : { change: "0%", trend: "neutral" };
+        }
+        const percentChange = ((current - previous) / previous) * 100;
+        const roundedChange = Math.round(percentChange);
+        const sign = roundedChange > 0 ? "+" : "";
+        return {
+            change: `${sign}${roundedChange}%`,
+            trend: roundedChange > 0 ? "up" : roundedChange < 0 ? "down" : "neutral"
+        };
+    };
+
+    const ordersChange = calculateChange(currentMonthOrders.length, previousMonthOrders.length);
+    const revenueChange = calculateChange(currentMonthRevenue, previousMonthRevenue);
+    const customersChange = calculateChange(currentMonthCustomers, previousMonthCustomers);
+
+    // Note: Restaurant count change is absolute since we don't have historical data
+    const restaurantChange = { change: `${activeRestaurants} active`, trend: "neutral" as const };
 
     const stats = [
         {
             title: "Total Orders",
             value: orders.length.toLocaleString(),
             icon: Package,
-            change: "+12%",
-            trend: "up"
+            change: ordersChange.change,
+            trend: ordersChange.trend
         },
         {
             title: "Total Revenue",
             value: `$${totalRevenue.toLocaleString()}`,
             icon: DollarSign,
-            change: "+8%",
-            trend: "up"
+            change: revenueChange.change,
+            trend: revenueChange.trend
         },
         {
             title: "Active Restaurants",
             value: activeRestaurants,
             icon: Store,
-            change: "+3",
-            trend: "up"
+            change: restaurantChange.change,
+            trend: restaurantChange.trend
         },
         {
             title: "Active Customers",
-            value: "0",
+            value: new Set(orders.map(o => o.customerPhone)).size.toString(),
             icon: Users,
-            change: "+15%",
-            trend: "up"
+            change: customersChange.change,
+            trend: customersChange.trend
         }
     ];
 
-    // Mock chart data - TODO: Replace with real analytics
-    const mockChartData = [
-        { name: 'Mon', orders: 45, revenue: 850 },
-        { name: 'Tue', orders: 52, revenue: 920 },
-        { name: 'Wed', orders: 48, revenue: 880 },
-        { name: 'Thu', orders: 61, revenue: 1050 },
-        { name: 'Fri', orders: 73, revenue: 1200 },
-        { name: 'Sat', orders: 89, revenue: 1450 },
-        { name: 'Sun', orders: 67, revenue: 1100 },
-    ];
+    // Calculate chart data from real orders
+    const getChartData = () => {
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const today = new Date();
+        const last7Days = Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(today);
+            d.setDate(d.getDate() - (6 - i));
+            return d;
+        });
+
+        return last7Days.map(date => {
+            const dateStr = date.toISOString().split('T')[0];
+            const dayOrders = orders.filter(o => o.createdAt.startsWith(dateStr));
+
+            return {
+                name: days[date.getDay()],
+                orders: dayOrders.length,
+                revenue: dayOrders.reduce((sum, o) => sum + o.total, 0)
+            };
+        });
+    };
+
+    const chartData = getChartData();
 
     const handleLogout = () => {
         logout();
@@ -207,8 +266,12 @@ const AdminDashboard: React.FC = () => {
                                                 <div>
                                                     <p className="text-sm text-muted-foreground">{stat.title}</p>
                                                     <p className="text-2xl font-bold mt-1">{stat.value}</p>
-                                                    <p className={`text-sm mt-1 ${stat.trend === 'up' ? 'text-accent' : 'text-destructive'}`}>
-                                                        {stat.change} from last month
+                                                    <p className={`text-sm mt-1 ${
+                                                        stat.trend === 'up' ? 'text-accent' : 
+                                                        stat.trend === 'down' ? 'text-destructive' : 
+                                                        'text-muted-foreground'
+                                                    }`}>
+                                                        {stat.change} {stat.trend !== 'neutral' ? 'from last month' : ''}
                                                     </p>
                                                 </div>
                                                 <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
@@ -229,14 +292,15 @@ const AdminDashboard: React.FC = () => {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-4">
-                                        {mockChartData.map((day) => (
+                                        {chartData.map((day) => (
                                             <div key={day.name} className="flex justify-between items-center">
                                                 <span className="text-sm font-medium">{day.name}</span>
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+                                                        {/* Scaling: Max orders approx 20 for now, or use max from data */}
                                                         <div
                                                             className="h-full bg-gradient-primary transition-all"
-                                                            style={{ width: `${(day.orders / 100) * 100}%` }}
+                                                            style={{ width: `${Math.min((day.orders / 20) * 100, 100)}%` }}
                                                         />
                                                     </div>
                                                     <span className="text-sm font-semibold w-8">{day.orders}</span>
@@ -253,17 +317,18 @@ const AdminDashboard: React.FC = () => {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-4">
-                                        {mockChartData.map((day) => (
+                                        {chartData.map((day) => (
                                             <div key={day.name} className="flex justify-between items-center">
                                                 <span className="text-sm font-medium">{day.name}</span>
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+                                                        {/* Scaling: Max revenue approx 500 for now */}
                                                         <div
                                                             className="h-full bg-gradient-accent transition-all"
-                                                            style={{ width: `${(day.revenue / 3000) * 100}%` }}
+                                                            style={{ width: `${Math.min((day.revenue / 500) * 100, 100)}%` }}
                                                         />
                                                     </div>
-                                                    <span className="text-sm font-semibold w-16">${day.revenue}</span>
+                                                    <span className="text-sm font-semibold w-16">${day.revenue.toFixed(0)}</span>
                                                 </div>
                                             </div>
                                         ))}
@@ -307,7 +372,7 @@ const AdminDashboard: React.FC = () => {
                     <TabsContent value="restaurants" className="space-y-6">
                         <div className="flex justify-between items-center">
                             <h2 className="text-2xl font-bold">Restaurant Management</h2>
-                            <AddRestaurantDialog 
+                            <AddRestaurantDialog
                                 trigger={
                                     <Button className="btn-hero">
                                         <Plus className="w-4 h-4 mr-2" />
@@ -361,7 +426,7 @@ const AdminDashboard: React.FC = () => {
                                                             {restaurant.isOpen ? 'Open' : 'Closed'}
                                                         </Badge>
                                                         <div className="flex gap-1">
-                                                            <EditRestaurantDialog 
+                                                            <EditRestaurantDialog
                                                                 restaurant={restaurant}
                                                                 trigger={
                                                                     <Button size="icon" variant="outline" className="w-8 h-8">
@@ -386,10 +451,10 @@ const AdminDashboard: React.FC = () => {
                                                 </div>
 
                                                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <TrendingUp className="w-4 h-4" />
-                              {restaurant.rating} rating
-                          </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <TrendingUp className="w-4 h-4" />
+                                                        {restaurant.rating} rating
+                                                    </span>
                                                     <span>{restaurant.reviewCount} reviews</span>
                                                     <span>{restaurant.deliveryTime}</span>
                                                     <span>${restaurant.deliveryFee} delivery</span>

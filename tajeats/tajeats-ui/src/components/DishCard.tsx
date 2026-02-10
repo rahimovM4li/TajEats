@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plus, Star } from 'lucide-react';
-import type {Dish} from '@/lib/mockData';
+import type { Dish } from '@/types/domain';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

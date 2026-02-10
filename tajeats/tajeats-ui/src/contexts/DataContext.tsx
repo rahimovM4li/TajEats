@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import type { Restaurant, Dish, Order, Review } from '@/lib/mockData';
+import type { Restaurant, Dish, Order, Review } from '@/types/domain';
 import type { RestaurantDTO, DishDTO, OrderDTO, ReviewDTO } from '@/types/api';
 import { restaurantService } from '@/services/restaurantService';
 import { dishService } from '@/services/dishService';
@@ -350,10 +350,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             const created = await reviewService.create(dto);
             const newReview = convertReviewFromAPI(created);
             setReviews(prev => [...prev, newReview]);
-            
+
             // Refresh restaurants to get updated rating
             await refreshRestaurants();
-            
+
             return newReview;
         } catch (error: any) {
             setReviewsError(error.message || 'Failed to add review');
@@ -370,7 +370,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             };
             const updated = await reviewService.update(Number(id), dto);
             setReviews(prev => prev.map(r => r.id === id ? convertReviewFromAPI(updated) : r));
-            
+
             // Refresh restaurants to get updated rating
             await refreshRestaurants();
         } catch (error: any) {
@@ -383,7 +383,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         try {
             await reviewService.delete(Number(id));
             setReviews(prev => prev.filter(r => r.id !== id));
-            
+
             // Refresh restaurants to get updated rating
             await refreshRestaurants();
         } catch (error: any) {

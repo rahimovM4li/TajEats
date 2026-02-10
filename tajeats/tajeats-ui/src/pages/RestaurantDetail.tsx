@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import DishCard from '@/components/DishCard';
 import AddReviewDialog from '@/components/AddReviewDialog';
 import { useData } from '@/contexts/DataContext';
-import type { Restaurant, Dish, Review } from '@/lib/mockData';
+import type { Restaurant, Dish, Review } from '@/types/domain';
 
 const RestaurantDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -198,37 +198,37 @@ const RestaurantDetail: React.FC = () => {
                         ) : (
                             restaurantReviews.map(review => (
                                 <Card key={review.id} className="glass border-border/20">
-                                <CardContent className="p-6">
-                                    <div className="flex items-start gap-4">
-                                        <Avatar>
-                                            <AvatarImage src={review.userAvatar} />
-                                            <AvatarFallback>{review.userName.charAt(0)}</AvatarFallback>
-                                        </Avatar>
+                                    <CardContent className="p-6">
+                                        <div className="flex items-start gap-4">
+                                            <Avatar>
+                                                <AvatarImage src={review.userAvatar} />
+                                                <AvatarFallback>{review.userName.charAt(0)}</AvatarFallback>
+                                            </Avatar>
 
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <div>
-                                                    <h4 className="font-semibold">{review.userName}</h4>
-                                                    <div className="flex items-center gap-1 mt-1">
-                                                        {[...Array(5)].map((_, i) => (
-                                                            <Star
-                                                                key={i}
-                                                                className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-muted-foreground'}`}
-                                                            />
-                                                        ))}
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div>
+                                                        <h4 className="font-semibold">{review.userName}</h4>
+                                                        <div className="flex items-center gap-1 mt-1">
+                                                            {[...Array(5)].map((_, i) => (
+                                                                <Star
+                                                                    key={i}
+                                                                    className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-muted-foreground'}`}
+                                                                />
+                                                            ))}
+                                                        </div>
                                                     </div>
+                                                    <span className="text-sm text-muted-foreground">
+                                                        {new Date(review.date).toLocaleDateString()}
+                                                    </span>
                                                 </div>
-                                                <span className="text-sm text-muted-foreground">
-                          {new Date(review.date).toLocaleDateString()}
-                        </span>
-                                            </div>
 
-                                            <p className="text-muted-foreground">{review.comment}</p>
+                                                <p className="text-muted-foreground">{review.comment}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )))
+                                    </CardContent>
+                                </Card>
+                            )))
                         }
                     </TabsContent>
                 </Tabs>
