@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Clock, Truck } from 'lucide-react';
-import type {Restaurant} from '@/lib/mockData';
+import type { Restaurant } from '@/types/domain';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 

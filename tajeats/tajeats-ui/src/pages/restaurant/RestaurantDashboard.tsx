@@ -46,48 +46,104 @@ const RestaurantDashboard: React.FC = () => {
     const restaurantDishes = dishes.filter(d => d.restaurantId === restaurantId);
     const restaurantReviews = reviews.filter(r => r.restaurantId === restaurantId);
     
-    const todayOrders = restaurantOrders.slice(0, 5);
+    // Calculate today and yesterday data
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterdayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const yesterdayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+
+    // Filter orders by date
+    const todayOrders = restaurantOrders.filter(o => {
+        const orderDate = new Date(o.createdAt);
+        return orderDate >= todayStart;
+    });
+
+    const yesterdayOrders = restaurantOrders.filter(o => {
+        const orderDate = new Date(o.createdAt);
+        return orderDate >= yesterdayStart && orderDate < yesterdayEnd;
+    });
+
+    // Calculate metrics
     const totalRevenue = restaurantOrders.reduce((sum, order) => sum + order.total, 0);
     const todayRevenue = todayOrders.reduce((sum, order) => sum + order.total, 0);
+    const yesterdayRevenue = yesterdayOrders.reduce((sum, order) => sum + order.total, 0);
+
+    // Calculate average rating from reviews
+    const averageRating = restaurantReviews.length > 0
+        ? restaurantReviews.reduce((sum, review) => sum + review.rating, 0) / restaurantReviews.length
+        : restaurant?.rating || 0;
+
+    // Get previous rating (simplified: assume current restaurant.rating is from yesterday)
+    const previousRating = restaurant?.rating || 0;
+    const ratingChange = averageRating - previousRating;
 
     const restaurantData = {
         name: restaurant?.name || 'Restaurant',
         image: restaurant?.image || '',
-        rating: restaurant?.rating || 0,
+        rating: averageRating,
         totalOrders: restaurantOrders.length,
         revenue: totalRevenue,
         todayOrders: todayOrders.length,
         todayRevenue: todayRevenue
     };
 
+    // Calculate changes and trends
+    const calculateChange = (current: number, previous: number): { change: string; trend: "up" | "down" | "neutral" } => {
+        if (previous === 0) {
+            return current > 0 ? { change: "+100%", trend: "up" } : { change: "0%", trend: "neutral" };
+        }
+        const percentChange = ((current - previous) / previous) * 100;
+        const roundedChange = Math.round(percentChange);
+        const sign = roundedChange > 0 ? "+" : "";
+        return {
+            change: `${sign}${roundedChange}%`,
+            trend: roundedChange > 0 ? "up" : roundedChange < 0 ? "down" : "neutral"
+        };
+    };
+
+    const todayOrdersChange = calculateChange(todayOrders.length, yesterdayOrders.length);
+    const todayRevenueChange = calculateChange(todayRevenue, yesterdayRevenue);
+    
+    // Calculate total orders change (compare current week to previous week)
+    const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+    const lastWeekOrders = restaurantOrders.filter(o => {
+        const orderDate = new Date(o.createdAt);
+        return orderDate >= weekAgo && orderDate < todayStart;
+    });
+    const thisWeekOrders = restaurantOrders.filter(o => {
+        const orderDate = new Date(o.createdAt);
+        return orderDate >= todayStart;
+    });
+    const totalOrdersChange = calculateChange(thisWeekOrders.length, lastWeekOrders.length);
+
     const stats = [
         {
             title: "Today's Orders",
             value: restaurantData.todayOrders,
             icon: Package,
-            change: "+12%",
-            trend: "up"
+            change: todayOrdersChange.change,
+            trend: todayOrdersChange.trend
         },
         {
             title: "Today's Revenue",
             value: `$${restaurantData.todayRevenue.toFixed(2)}`,
             icon: DollarSign,
-            change: "+8%",
-            trend: "up"
+            change: todayRevenueChange.change,
+            trend: todayRevenueChange.trend
         },
         {
             title: "Average Rating",
-            value: restaurantData.rating,
+            value: averageRating.toFixed(1),
             icon: Star,
-            change: "+0.2",
-            trend: "up"
+            change: ratingChange >= 0 ? `+${ratingChange.toFixed(1)}` : ratingChange.toFixed(1),
+            trend: ratingChange > 0 ? "up" : ratingChange < 0 ? "down" : "neutral"
         },
         {
             title: "Total Orders",
             value: restaurantData.totalOrders,
             icon: TrendingUp,
-            change: "+5%",
-            trend: "up"
+            change: totalOrdersChange.change,
+            trend: totalOrdersChange.trend
         }
     ];
 
@@ -176,8 +232,12 @@ const RestaurantDashboard: React.FC = () => {
                                                 <div>
                                                     <p className="text-sm text-muted-foreground">{stat.title}</p>
                                                     <p className="text-2xl font-bold mt-1">{stat.value}</p>
-                                                    <p className={`text-sm mt-1 ${stat.trend === 'up' ? 'text-accent' : 'text-destructive'}`}>
-                                                        {stat.change} from yesterday
+                                                    <p className={`text-sm mt-1 ${
+                                                        stat.trend === 'up' ? 'text-accent' : 
+                                                        stat.trend === 'down' ? 'text-destructive' : 
+                                                        'text-muted-foreground'
+                                                    }`}>
+                                                        {stat.change} {stat.trend !== 'neutral' ? (stat.title.includes('Total') ? 'this week' : 'from yesterday') : ''}
                                                     </p>
                                                 </div>
                                                 <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
@@ -194,7 +254,7 @@ const RestaurantDashboard: React.FC = () => {
                         <Card className="glass border-border/20">
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle>Recent Orders</CardTitle>
-                                <Button variant="outline" size="sm">View All</Button>
+                                <Button variant="slice(0, 5).outline" size="sm">View All</Button>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">

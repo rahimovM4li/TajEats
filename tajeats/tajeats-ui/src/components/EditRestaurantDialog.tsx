@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useData } from '@/contexts/DataContext';
 import { Edit } from 'lucide-react';
 import ImageUpload from '@/components/ImageUpload';
-import type { Restaurant } from '@/lib/mockData';
+import type { Restaurant } from '@/types/domain';
 
 interface EditRestaurantDialogProps {
     restaurant: Restaurant;
@@ -31,7 +31,7 @@ const EditRestaurantDialog: React.FC<EditRestaurantDialogProps> = ({ restaurant,
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    
+
     const [formData, setFormData] = useState({
         name: restaurant.name,
         description: restaurant.description,

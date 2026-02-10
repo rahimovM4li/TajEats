@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useData } from '@/contexts/DataContext';
 import { Edit } from 'lucide-react';
 import ImageUpload from '@/components/ImageUpload';
-import type { Dish } from '@/lib/mockData';
+import type { Dish } from '@/types/domain';
 
 interface EditDishDialogProps {
     dish: Dish;
@@ -31,7 +31,7 @@ const EditDishDialog: React.FC<EditDishDialogProps> = ({ dish, trigger, onSucces
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    
+
     const [formData, setFormData] = useState({
         name: dish.name,
         description: dish.description,
@@ -186,7 +186,7 @@ const EditDishDialog: React.FC<EditDishDialogProps> = ({ dish, trigger, onSucces
                             />
                             <Label htmlFor="isAvailable">Available for order</Label>
                         </div>
-                        
+
                         <div className="flex items-center space-x-2">
                             <Switch
                                 id="isPopular"

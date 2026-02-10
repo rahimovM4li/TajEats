@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import type { CartItem, Dish } from '@/lib/mockData';
+import type { CartItem, Dish } from '@/types/domain';
 import { cartService } from '@/services/cartService';
 import type { CartItemResponseDTO } from '@/types/api';
 
