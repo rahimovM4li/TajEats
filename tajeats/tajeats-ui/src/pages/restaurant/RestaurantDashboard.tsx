@@ -24,10 +24,11 @@ import EditDishDialog from '@/components/EditDishDialog';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import OrderDetailsDialog from '@/components/OrderDetailsDialog';
 import EditReviewDialog from '@/components/EditReviewDialog';
+import EditRestaurantDialog from '@/components/EditRestaurantDialog';
 import apiClient from '@/lib/api';
 
 const RestaurantDashboard: React.FC = () => {
-    const { restaurants, dishes, orders, reviews, deleteDish, refreshReviews } = useData();
+    const { restaurants, dishes, orders, reviews, deleteDish, refreshReviews, refreshRestaurants } = useData();
     const { user, logout } = useAuth();
     const [activeTab, setActiveTab] = useState('overview');
 
@@ -207,7 +208,21 @@ const RestaurantDashboard: React.FC = () => {
                                     <span>${restaurantData.revenue} total revenue</span>
                                 </div>
                             </div>
-                            <Badge className="bg-accent/90">Active</Badge>
+                            <div className="flex items-center gap-2">
+                                {restaurant && (
+                                    <EditRestaurantDialog
+                                        restaurant={restaurant}
+                                        onSuccess={refreshRestaurants}
+                                        trigger={
+                                            <Button variant="outline" size="sm">
+                                                <Edit className="w-4 h-4 mr-2" />
+                                                Edit Profile
+                                            </Button>
+                                        }
+                                    />
+                                )}
+                                <Badge className="bg-accent/90">Active</Badge>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>

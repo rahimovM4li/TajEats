@@ -1,15 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Clock, Truck } from 'lucide-react';
+import { Star, Clock, Truck, ShoppingBag } from 'lucide-react';
 import type { Restaurant } from '@/types/domain';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { getOpenStatusText } from '@/lib/restaurantUtils';
 
 interface RestaurantCardProps {
     restaurant: Restaurant;
 }
 
 const RestaurantCard: React.FC<RestaurantCardProps> = ({ restaurant }) => {
+    const openStatus = getOpenStatusText(restaurant);
+
     return (
         <Link to={`/restaurant/${restaurant.id}`} className="block">
             <Card className="glass card-hover border-border/20 overflow-hidden">
@@ -21,10 +24,10 @@ const RestaurantCard: React.FC<RestaurantCardProps> = ({ restaurant }) => {
                     />
                     <div className="absolute top-4 left-4">
                         <Badge
-                            variant={restaurant.isOpen ? "default" : "destructive"}
-                            className={restaurant.isOpen ? "bg-accent/90" : "bg-destructive/90"}
+                            variant={openStatus.isOpen ? "default" : "destructive"}
+                            className={openStatus.isOpen ? "bg-accent/90" : "bg-destructive/90"}
                         >
-                            {restaurant.isOpen ? "Open" : "Closed"}
+                            {openStatus.text}
                         </Badge>
                     </div>
                     <div className="absolute top-4 right-4">
@@ -56,9 +59,24 @@ const RestaurantCard: React.FC<RestaurantCardProps> = ({ restaurant }) => {
                                 <span>{restaurant.deliveryTime}</span>
                             </div>
 
-                            <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                                <Truck className="w-4 h-4" />
-                                <span>${restaurant.deliveryFee}</span>
+                            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                                {restaurant.deliveryMode && (restaurant.deliveryMode === 'DELIVERY' || restaurant.deliveryMode === 'BOTH') && (
+                                    <div className="flex items-center space-x-1" title="Delivery">
+                                        <Truck className="w-4 h-4" />
+                                        <span>${restaurant.deliveryFee}</span>
+                                    </div>
+                                )}
+                                {restaurant.deliveryMode && (restaurant.deliveryMode === 'PICKUP' || restaurant.deliveryMode === 'BOTH') && (
+                                    <div className="flex items-center space-x-1" title="Pickup">
+                                        <ShoppingBag className="w-4 h-4" />
+                                    </div>
+                                )}
+                                {!restaurant.deliveryMode && (
+                                    <div className="flex items-center space-x-1">
+                                        <Truck className="w-4 h-4" />
+                                        <span>${restaurant.deliveryFee}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
