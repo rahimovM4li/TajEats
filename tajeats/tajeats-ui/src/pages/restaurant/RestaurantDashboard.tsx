@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Package,
@@ -10,7 +10,9 @@ import {
     Bell,
     Settings,
     LogOut,
-    Trash2
+    Trash2,
+    Bike,
+    Phone
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +21,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { orderService } from '@/services/orderService';
+import { getRidersByRestaurant } from '@/services/userService';
+import type { UserDTO } from '@/types/api';
 import AddDishDialog from '@/components/AddDishDialog';
 import EditDishDialog from '@/components/EditDishDialog';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
@@ -28,9 +34,11 @@ import EditRestaurantDialog from '@/components/EditRestaurantDialog';
 import apiClient from '@/lib/api';
 
 const RestaurantDashboard: React.FC = () => {
-    const { restaurants, dishes, orders, reviews, deleteDish, refreshReviews, refreshRestaurants } = useData();
+    const { restaurants, dishes, orders, reviews, deleteDish, refreshReviews, refreshRestaurants, refreshOrders } = useData();
     const { user, logout } = useAuth();
+    const { toast } = useToast();
     const [activeTab, setActiveTab] = useState('overview');
+    const [riders, setRiders] = useState<UserDTO[]>([]);
 
     // Check if user has a restaurant linked
     if (!user?.restaurantId) {
@@ -42,6 +50,13 @@ const RestaurantDashboard: React.FC = () => {
     // Get restaurant ID from authenticated user
     const restaurantId = user.restaurantId;
     const restaurant = restaurants.find(r => r.id === restaurantId);
+
+    // Load riders for this restaurant
+    useEffect(() => {
+        if (restaurantId) {
+            getRidersByRestaurant(Number(restaurantId)).then(setRiders).catch(console.error);
+        }
+    }, [restaurantId]);
     
     const restaurantOrders = orders.filter(o => o.restaurantId === restaurantId);
     const restaurantDishes = dishes.filter(d => d.restaurantId === restaurantId);
@@ -153,6 +168,23 @@ const RestaurantDashboard: React.FC = () => {
         window.location.href = '/restaurant';
     };
 
+    const handleUpdateOrderStatus = async (orderId: string, status: string) => {
+        try {
+            await orderService.updateStatus(Number(orderId), status);
+            await refreshOrders();
+            toast({
+                title: 'Bestellstatus aktualisiert',
+                description: `Bestellung #${orderId} wurde auf "${status}" gesetzt.`,
+            });
+        } catch (error) {
+            toast({
+                title: 'Fehler',
+                description: 'Status konnte nicht aktualisiert werden.',
+                variant: 'destructive',
+            });
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
             {/* Header */}
@@ -228,10 +260,11 @@ const RestaurantDashboard: React.FC = () => {
                 </Card>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <TabsList className="grid grid-cols-4 w-full max-w-md">
+                    <TabsList className="grid grid-cols-5 w-full max-w-lg">
                         <TabsTrigger value="overview">Overview</TabsTrigger>
                         <TabsTrigger value="orders">Orders</TabsTrigger>
                         <TabsTrigger value="menu">Menu</TabsTrigger>
+                        <TabsTrigger value="riders">Fahrer</TabsTrigger>
                         <TabsTrigger value="reviews">Reviews</TabsTrigger>
                     </TabsList>
 
@@ -280,7 +313,7 @@ const RestaurantDashboard: React.FC = () => {
                                                     <h4 className="font-semibold">Order #{order.id}</h4>
                                                     <Badge variant={
                                                         order.status === 'delivered' ? 'default' :
-                                                            order.status === 'preparing' ? 'secondary' :
+                                                            order.status === 'approved' ? 'secondary' :
                                                                 order.status === 'on-the-way' ? 'outline' : 'destructive'
                                                     }>
                                                         {order.status.replace('-', ' ')}
@@ -288,6 +321,7 @@ const RestaurantDashboard: React.FC = () => {
                                                 </div>
                                                 <p className="text-sm text-muted-foreground">{order.customerName}</p>
                                                 <p className="text-sm text-muted-foreground">{order.items.length} items • ${order.total}</p>
+                                                <Badge variant="outline" className="mt-1">{order.deliveryType === 'PICKUP' ? 'Abholung' : 'Lieferung'}</Badge>
                                                 <OrderDetailsDialog order={order} />
                                             </div>
                                         </div>
@@ -319,11 +353,12 @@ const RestaurantDashboard: React.FC = () => {
                                             <div className="text-right">
                                                 <Badge variant={
                                                     order.status === 'delivered' ? 'default' :
-                                                        order.status === 'preparing' ? 'secondary' :
+                                                        order.status === 'approved' ? 'secondary' :
                                                             order.status === 'on-the-way' ? 'outline' : 'destructive'
                                                 }>
                                                     {order.status.replace('-', ' ')}
                                                 </Badge>
+                                                <Badge variant="outline" className="ml-2">{order.deliveryType === 'PICKUP' ? 'Abholung' : 'Lieferung'}</Badge>
                                                 <p className="text-lg font-bold mt-2">${order.total}</p>
                                             </div>
                                         </div>
@@ -340,10 +375,17 @@ const RestaurantDashboard: React.FC = () => {
                                         <div className="flex gap-2">
                                             <OrderDetailsDialog order={order} />
                                             {order.status === 'placed' && (
-                                                <Button size="sm" className="bg-gradient-primary">Accept Order</Button>
+                                                <Button size="sm" className="bg-gradient-primary" onClick={() => handleUpdateOrderStatus(order.id, 'approved')}>
+                                                    Annehmen
+                                                </Button>
                                             )}
-                                            {order.status === 'preparing' && (
-                                                <Button size="sm" className="bg-gradient-accent">Mark Ready</Button>
+                                            {order.status === 'approved' && order.deliveryType === 'PICKUP' && (
+                                                <Button size="sm" className="bg-gradient-accent" onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}>
+                                                    Abgeholt
+                                                </Button>
+                                            )}
+                                            {order.status === 'approved' && order.deliveryType === 'DELIVERY' && (
+                                                <Badge variant="outline">Wartet auf Fahrer</Badge>
                                             )}
                                         </div>
                                     </CardContent>
@@ -416,6 +458,55 @@ const RestaurantDashboard: React.FC = () => {
                                 </Card>
                             ))}
                         </div>
+                    </TabsContent>
+
+                    <TabsContent value="riders" className="space-y-6">
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-2xl font-bold">Fahrer</h2>
+                            <Badge variant="outline">{riders.length} Fahrer</Badge>
+                        </div>
+
+                        {riders.length === 0 ? (
+                            <Card className="glass border-border/20">
+                                <CardContent className="p-8 text-center">
+                                    <Bike className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                                    <h3 className="text-lg font-semibold mb-2">Keine Fahrer</h3>
+                                    <p className="text-muted-foreground">Es sind noch keine Fahrer für Ihr Restaurant registriert.</p>
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        Fahrer können sich unter <strong>/rider/register</strong> registrieren und Ihr Restaurant auswählen.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {riders.map((rider) => (
+                                    <Card key={rider.id} className="glass border-border/20">
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div className="w-12 h-12 bg-gradient-primary rounded-full flex items-center justify-center">
+                                                    <Bike className="w-6 h-6 text-white" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-semibold">{rider.name}</h3>
+                                                    <p className="text-sm text-muted-foreground">{rider.email}</p>
+                                                </div>
+                                            </div>
+                                            {rider.phone && (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <Phone className="w-4 h-4" />
+                                                    <span>{rider.phone}</span>
+                                                </div>
+                                            )}
+                                            <div className="mt-3">
+                                                <Badge className={rider.isApproved ? 'bg-accent/90' : 'bg-yellow-500'}>
+                                                    {rider.isApproved ? 'Aktiv' : 'Ausstehend'}
+                                                </Badge>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        )}
                     </TabsContent>
 
                     <TabsContent value="reviews" className="space-y-6">

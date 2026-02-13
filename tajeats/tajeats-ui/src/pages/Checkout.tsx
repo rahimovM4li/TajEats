@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, MapPin, Phone, User, Clock } from 'lucide-react';
+import { CreditCard, MapPin, Phone, User, Clock, Truck, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/contexts/CartContext';
+import { useData } from '@/contexts/DataContext';
 import { useToast } from '@/hooks/use-toast';
 import { orderService } from '@/services/orderService';
 import type { OrderDTO } from '@/types/api';
@@ -16,20 +17,41 @@ import type { OrderDTO } from '@/types/api';
 const Checkout: React.FC = () => {
     const navigate = useNavigate();
     const { items, getTotalPrice, clearCart } = useCart();
+    const { restaurants } = useData();
     const { toast } = useToast();
+
+    // Determine the restaurant for this order
+    const restaurant = useMemo(() => {
+        if (items.length === 0) return null;
+        return restaurants.find(r => r.id === items[0].dish.restaurantId);
+    }, [items, restaurants]);
+
+    // Determine available delivery modes
+    const availableModes = useMemo(() => {
+        if (!restaurant?.deliveryMode) return { delivery: true, pickup: true };
+        switch (restaurant.deliveryMode) {
+            case 'DELIVERY': return { delivery: true, pickup: false };
+            case 'PICKUP': return { delivery: false, pickup: true };
+            case 'BOTH': return { delivery: true, pickup: true };
+            default: return { delivery: true, pickup: true };
+        }
+    }, [restaurant]);
+
+    const defaultDeliveryType = availableModes.delivery ? 'DELIVERY' : 'PICKUP';
 
     const [formData, setFormData] = useState({
         fullName: '',
         phone: '',
         address: '',
         notes: '',
-        paymentMethod: 'cash'
+        paymentMethod: 'cash',
+        deliveryType: defaultDeliveryType as 'DELIVERY' | 'PICKUP'
     });
 
     const [isLoading, setIsLoading] = useState(false);
 
     const subtotal = getTotalPrice();
-    const deliveryFee = 5;
+    const deliveryFee = formData.deliveryType === 'PICKUP' ? 0 : 5;
     const tax = subtotal * 0.08;
     const total = subtotal + deliveryFee + tax;
 
@@ -55,8 +77,9 @@ const Checkout: React.FC = () => {
                 restaurantId: Number(items[0].dish.restaurantId), // Get from first item
                 customerName: formData.fullName,
                 customerPhone: formData.phone,
-                customerAddress: formData.address,
+                customerAddress: formData.deliveryType === 'PICKUP' ? 'Selbstabholung' : formData.address,
                 total: total,
+                deliveryType: formData.deliveryType,
                 items: items.map(item => ({
                     dishId: Number(item.dish.id),
                     quantity: item.quantity,
@@ -96,6 +119,51 @@ const Checkout: React.FC = () => {
                         {/* Checkout Form */}
                         <div className="lg:col-span-2 space-y-6">
                             <form onSubmit={handleSubmit} className="space-y-6">
+                                {/* Delivery Type Selection */}
+                                <Card className="glass border-border/20">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Truck className="w-5 h-5 text-primary" />
+                                            Lieferart
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <RadioGroup
+                                            value={formData.deliveryType}
+                                            onValueChange={(value) => setFormData({ ...formData, deliveryType: value as 'DELIVERY' | 'PICKUP' })}
+                                        >
+                                            {availableModes.delivery && (
+                                                <div className="flex items-center space-x-2">
+                                                    <RadioGroupItem value="DELIVERY" id="delivery" />
+                                                    <Label htmlFor="delivery" className="flex-1 cursor-pointer">
+                                                        <div className="flex justify-between items-center">
+                                                            <div className="flex items-center gap-2">
+                                                                <Truck className="w-4 h-4" />
+                                                                <span>Lieferung</span>
+                                                            </div>
+                                                            <span className="text-sm text-muted-foreground">Liefergebühr: $5.00</span>
+                                                        </div>
+                                                    </Label>
+                                                </div>
+                                            )}
+                                            {availableModes.pickup && (
+                                                <div className="flex items-center space-x-2">
+                                                    <RadioGroupItem value="PICKUP" id="pickup" />
+                                                    <Label htmlFor="pickup" className="flex-1 cursor-pointer">
+                                                        <div className="flex justify-between items-center">
+                                                            <div className="flex items-center gap-2">
+                                                                <ShoppingBag className="w-4 h-4" />
+                                                                <span>Selbstabholung</span>
+                                                            </div>
+                                                            <span className="text-sm text-muted-foreground">Kostenlos</span>
+                                                        </div>
+                                                    </Label>
+                                                </div>
+                                            )}
+                                        </RadioGroup>
+                                    </CardContent>
+                                </Card>
+
                                 {/* Delivery Information */}
                                 <Card className="glass border-border/20">
                                     <CardHeader>
@@ -140,15 +208,15 @@ const Checkout: React.FC = () => {
                                         </div>
 
                                         <div>
-                                            <Label htmlFor="address">Delivery Address *</Label>
+                                            <Label htmlFor="address">{formData.deliveryType === 'PICKUP' ? 'Abholadresse (optional)' : 'Delivery Address *'}</Label>
                                             <Textarea
                                                 id="address"
                                                 name="address"
                                                 value={formData.address}
                                                 onChange={handleInputChange}
-                                                required
+                                                required={formData.deliveryType === 'DELIVERY'}
                                                 className="border-border/20"
-                                                placeholder="Enter your full delivery address..."
+                                                placeholder={formData.deliveryType === 'PICKUP' ? 'Optional...' : 'Enter your full delivery address...'}
                                                 rows={3}
                                             />
                                         </div>

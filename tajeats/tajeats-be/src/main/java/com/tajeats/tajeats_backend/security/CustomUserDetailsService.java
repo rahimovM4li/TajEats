@@ -27,6 +27,11 @@ public class CustomUserDetailsService implements UserDetailsService {
             throw new UsernameNotFoundException("Account is pending admin approval");
         }
         
+        // Check if rider is approved
+        if (user.getRole() == User.Role.RIDER && !user.getIsApproved()) {
+            throw new UsernameNotFoundException("Rider account is pending approval");
+        }
+        
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPassword(),

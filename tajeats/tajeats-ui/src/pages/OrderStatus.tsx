@@ -1,86 +1,80 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { CheckCircle, Truck, Package, MapPin, Phone } from 'lucide-react';
+import { CheckCircle, Truck, Package, MapPin, Phone, ShoppingBag, ThumbsUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { orderService } from '@/services/orderService';
+import type { OrderDTO } from '@/types/api';
 
 const OrderStatus: React.FC = () => {
     const { orderId } = useParams<{ orderId: string }>();
-    const [currentStatus, setCurrentStatus] = useState<'placed' | 'preparing' | 'on-the-way' | 'delivered'>('placed');
-    const [progress, setProgress] = useState(25);
+    const [order, setOrder] = useState<OrderDTO | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Mock order data - TODO: Replace with API call
-    const orderData = {
-        id: orderId,
-        restaurantName: 'Tajik Traditional Kitchen',
-        customerName: 'Rustam Shoev',
-        customerPhone: '+992 92 123 4567',
-        customerAddress: 'Rudaki Avenue 45, Dushanbe',
-        items: [
-            { name: 'Oshi Palov', quantity: 2, price: 50 },
-            { name: 'Steamed Manti', quantity: 1, price: 18 }
-        ],
-        total: 73,
-        estimatedDelivery: '45 minutes',
-        driverName: 'Ahmad Karimov',
-        driverPhone: '+992 93 456 7890'
-    };
-
-    const statusSteps = [
-        {
-            key: 'placed' as const,
-            label: 'Order Placed',
-            icon: CheckCircle,
-            description: 'Your order has been confirmed'
-        },
-        {
-            key: 'preparing' as const,
-            label: 'Preparing',
-            icon: Package,
-            description: 'Restaurant is preparing your food'
-        },
-        {
-            key: 'on-the-way' as const,
-            label: 'On the Way',
-            icon: Truck,
-            description: 'Driver is heading to your location'
-        },
-        {
-            key: 'delivered' as const,
-            label: 'Delivered',
-            icon: CheckCircle,
-            description: 'Order delivered successfully'
-        }
-    ];
-
-    // Mock status progression - TODO: Replace with real-time updates
+    // Poll order status every 5 seconds
     useEffect(() => {
-        const timer = setInterval(() => {
-            setCurrentStatus(prev => {
-                switch (prev) {
-                    case 'placed':
-                        setProgress(50);
-                        return 'preparing';
-                    case 'preparing':
-                        setProgress(75);
-                        return 'on-the-way';
-                    case 'on-the-way':
-                        setProgress(100);
-                        return 'delivered';
-                    default:
-                        return prev;
-                }
-            });
-        }, 10000); // Change status every 10 seconds for demo
+        const fetchOrder = async () => {
+            if (!orderId) return;
+            try {
+                const data = await orderService.getById(Number(orderId));
+                setOrder(data);
+            } catch (err) {
+                console.error('Failed to fetch order:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchOrder();
+        const interval = setInterval(fetchOrder, 5000);
+        return () => clearInterval(interval);
+    }, [orderId]);
 
-        return () => clearInterval(timer);
-    }, []);
+    const currentStatus = order?.status || 'placed';
+    const isPickup = order?.deliveryType === 'PICKUP';
+
+    const statusSteps = useMemo(() => {
+        if (isPickup) {
+            return [
+                { key: 'placed', label: 'Bestellt', icon: Package, description: 'Bestellung wurde aufgegeben' },
+                { key: 'approved', label: 'Best\u00e4tigt', icon: ThumbsUp, description: 'Restaurant hat best\u00e4tigt' },
+                { key: 'delivered', label: 'Abgeholt', icon: ShoppingBag, description: 'Bestellung abgeholt' },
+            ];
+        }
+        return [
+            { key: 'placed', label: 'Bestellt', icon: Package, description: 'Bestellung wurde aufgegeben' },
+            { key: 'approved', label: 'Best\u00e4tigt', icon: ThumbsUp, description: 'Restaurant hat best\u00e4tigt' },
+            { key: 'on-the-way', label: 'Unterwegs', icon: Truck, description: 'Fahrer ist unterwegs' },
+            { key: 'delivered', label: 'Geliefert', icon: CheckCircle, description: 'Erfolgreich geliefert' },
+        ];
+    }, [isPickup]);
 
     const getCurrentStepIndex = () => {
         return statusSteps.findIndex(step => step.key === currentStatus);
     };
+
+    const progress = useMemo(() => {
+        const idx = getCurrentStepIndex();
+        if (idx < 0) return 0;
+        return Math.round(((idx + 1) / statusSteps.length) * 100);
+    }, [currentStatus, statusSteps]);
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <p className="text-muted-foreground">Bestellung wird geladen...</p>
+            </div>
+        );
+    }
+
+    if (!order) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <p className="text-muted-foreground">Bestellung nicht gefunden.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen py-8">
@@ -88,27 +82,32 @@ const OrderStatus: React.FC = () => {
                 <div className="max-w-4xl mx-auto">
                     {/* Header */}
                     <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold mb-2">Order Status</h1>
-                        <p className="text-muted-foreground">Order #{orderId}</p>
+                        <h1 className="text-3xl font-bold mb-2">Bestellstatus</h1>
+                        <p className="text-muted-foreground">Bestellung #{orderId}</p>
+                        <Badge variant="outline" className="mt-2">
+                            {isPickup ? 'Selbstabholung' : 'Lieferung'}
+                        </Badge>
                     </div>
 
                     {/* Status Progress */}
                     <Card className="glass border-border/20 mb-8">
                         <CardHeader>
-                            <CardTitle>Tracking Your Order</CardTitle>
+                            <CardTitle>Tracking</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-6">
                                 {/* Progress Bar */}
                                 <div className="space-y-2">
                                     <Progress value={progress} className="h-2" />
-                                    <p className="text-sm text-muted-foreground text-center">
-                                        Estimated delivery: {orderData.estimatedDelivery}
-                                    </p>
+                                    {order.estimatedDelivery && (
+                                        <p className="text-sm text-muted-foreground text-center">
+                                            Gesch\u00e4tzte {isPickup ? 'Abholung' : 'Lieferung'}: {new Date(order.estimatedDelivery).toLocaleTimeString()}
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* Status Steps */}
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className={`grid grid-cols-1 ${isPickup ? 'md:grid-cols-3' : 'md:grid-cols-4'} gap-4`}>
                                     {statusSteps.map((step, index) => {
                                         const Icon = step.icon;
                                         const isActive = index <= getCurrentStepIndex();
@@ -137,7 +136,7 @@ const OrderStatus: React.FC = () => {
                                                     {step.description}
                                                 </p>
                                                 {isCurrent && (
-                                                    <Badge className="mt-2 bg-primary/90">Current</Badge>
+                                                    <Badge className="mt-2 bg-primary/90">Aktuell</Badge>
                                                 )}
                                             </div>
                                         );
@@ -151,27 +150,17 @@ const OrderStatus: React.FC = () => {
                         {/* Order Details */}
                         <Card className="glass border-border/20">
                             <CardHeader>
-                                <CardTitle>Order Details</CardTitle>
+                                <CardTitle>Bestelldetails</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div>
-                                    <h4 className="font-semibold mb-2">From: {orderData.restaurantName}</h4>
-                                    <div className="space-y-2">
-                                        {orderData.items.map((item, index) => (
-                                            <div key={index} className="flex justify-between items-center">
-                        <span className="text-sm">
-                          {item.quantity}x {item.name}
-                        </span>
-                                                <span className="font-semibold">${item.price}</span>
-                                            </div>
-                                        ))}
-                                    </div>
+                                    <h4 className="font-semibold mb-2">Von: {order.restaurantName}</h4>
                                 </div>
 
                                 <div className="border-t pt-4">
                                     <div className="flex justify-between items-center text-lg font-bold">
-                                        <span>Total</span>
-                                        <span className="text-primary">${orderData.total}</span>
+                                        <span>Gesamt</span>
+                                        <span className="text-primary">${order.total}</span>
                                     </div>
                                 </div>
                             </CardContent>
@@ -180,39 +169,27 @@ const OrderStatus: React.FC = () => {
                         {/* Delivery Info */}
                         <Card className="glass border-border/20">
                             <CardHeader>
-                                <CardTitle>Delivery Information</CardTitle>
+                                <CardTitle>{isPickup ? 'Abholinformationen' : 'Lieferinformationen'}</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-3">
-                                    <div className="flex items-start gap-3">
-                                        <MapPin className="w-5 h-5 text-primary mt-0.5" />
-                                        <div>
-                                            <p className="font-semibold">Delivery Address</p>
-                                            <p className="text-sm text-muted-foreground">{orderData.customerAddress}</p>
+                                    {!isPickup && (
+                                        <div className="flex items-start gap-3">
+                                            <MapPin className="w-5 h-5 text-primary mt-0.5" />
+                                            <div>
+                                                <p className="font-semibold">Lieferadresse</p>
+                                                <p className="text-sm text-muted-foreground">{order.customerAddress}</p>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
 
                                     <div className="flex items-center gap-3">
                                         <Phone className="w-5 h-5 text-primary" />
                                         <div>
-                                            <p className="font-semibold">Contact</p>
-                                            <p className="text-sm text-muted-foreground">{orderData.customerPhone}</p>
+                                            <p className="font-semibold">Kontakt</p>
+                                            <p className="text-sm text-muted-foreground">{order.customerPhone}</p>
                                         </div>
                                     </div>
-
-                                    {currentStatus === 'on-the-way' && (
-                                        <div className="border-t pt-4">
-                                            <div className="flex items-center gap-3">
-                                                <Truck className="w-5 h-5 text-primary" />
-                                                <div>
-                                                    <p className="font-semibold">Your Driver</p>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {orderData.driverName} • {orderData.driverPhone}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             </CardContent>
                         </Card>
@@ -224,29 +201,31 @@ const OrderStatus: React.FC = () => {
                             <div className="space-y-4">
                                 <div className="p-6 bg-gradient-to-r from-accent/10 to-primary/10 rounded-lg">
                                     <CheckCircle className="w-12 h-12 text-accent mx-auto mb-4" />
-                                    <h3 className="text-xl font-bold mb-2">Order Delivered Successfully!</h3>
-                                    <p className="text-muted-foreground">Thank you for choosing TajEats. We hope you enjoyed your meal!</p>
+                                    <h3 className="text-xl font-bold mb-2">
+                                        {isPickup ? 'Bestellung erfolgreich abgeholt!' : 'Bestellung erfolgreich geliefert!'}
+                                    </h3>
+                                    <p className="text-muted-foreground">Vielen Dank f\u00fcr Ihre Bestellung bei TajEats!</p>
                                 </div>
 
                                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                                     <Link to="/restaurants">
                                         <Button size="lg" className="btn-hero">
-                                            Order Again
+                                            Erneut bestellen
                                         </Button>
                                     </Link>
                                     <Button variant="outline" size="lg">
-                                        Rate Your Experience
+                                        Bewertung abgeben
                                     </Button>
                                 </div>
                             </div>
                         ) : (
                             <div className="space-y-4">
                                 <p className="text-muted-foreground">
-                                    Need help? Contact our support team or the restaurant directly.
+                                    Brauchen Sie Hilfe? Kontaktieren Sie unser Support-Team.
                                 </p>
                                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                                    <Button variant="outline">Contact Support</Button>
-                                    <Button variant="outline">Call Restaurant</Button>
+                                    <Button variant="outline">Support kontaktieren</Button>
+                                    <Button variant="outline">Restaurant anrufen</Button>
                                 </div>
                             </div>
                         )}

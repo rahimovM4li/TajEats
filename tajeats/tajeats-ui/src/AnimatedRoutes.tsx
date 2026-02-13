@@ -22,6 +22,11 @@ import RestaurantRegister from "./pages/restaurant/RestaurantRegister";
 import RestaurantDashboard from "./pages/restaurant/RestaurantDashboard";
 import RestaurantSetup from "./pages/restaurant/RestaurantSetup";
 
+// Rider Portal
+import RiderLogin from "./pages/rider/RiderLogin";
+import RiderRegister from "./pages/rider/RiderRegister";
+import RiderDashboard from "./pages/rider/RiderDashboard";
+
 // Admin Portal
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -66,6 +71,15 @@ const AnimatedRoutes = () => {
                 <Route path="/admin/dashboard" element={
                     <ProtectedRoute requiredRole="admin">
                         <PageTransition><AdminDashboard /></PageTransition>
+                    </ProtectedRoute>
+                } />
+
+                {/* Rider Portal */}
+                <Route path="/rider/login" element={<PageTransition><RiderLogin /></PageTransition>} />
+                <Route path="/rider/register" element={<PageTransition><RiderRegister /></PageTransition>} />
+                <Route path="/rider/dashboard" element={
+                    <ProtectedRoute requiredRole="rider">
+                        <PageTransition><RiderDashboard /></PageTransition>
                     </ProtectedRoute>
                 } />
 

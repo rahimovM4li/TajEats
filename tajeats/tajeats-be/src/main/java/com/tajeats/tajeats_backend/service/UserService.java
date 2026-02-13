@@ -34,7 +34,7 @@ public class UserService {
             throw new UserAlreadyExistsException("Email already registered");
         }
         
-        // Validate role (only RESTAURANT_OWNER or CUSTOMER allowed)
+        // Validate role (only RESTAURANT_OWNER, CUSTOMER, or RIDER allowed)
         if (request.getRole() == User.Role.ADMIN) {
             throw new IllegalArgumentException("Cannot register as ADMIN through this endpoint");
         }
@@ -45,9 +45,10 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setName(request.getName());
         user.setRole(request.getRole());
+        user.setPhone(request.getPhone());
         
-        // Set approval status: CUSTOMER = auto-approved, RESTAURANT_OWNER = needs approval
-        user.setIsApproved(request.getRole() == User.Role.CUSTOMER);
+        // Set approval status: CUSTOMER and RIDER = auto-approved, RESTAURANT_OWNER = needs approval
+        user.setIsApproved(request.getRole() == User.Role.CUSTOMER || request.getRole() == User.Role.RIDER);
         
         User savedUser = userRepository.save(user);
         return toDTO(savedUser);
@@ -112,6 +113,13 @@ public class UserService {
         User savedUser = userRepository.save(user);
         return toDTO(savedUser);
     }
+
+    public List<UserDTO> getRidersByRestaurant(Long restaurantId) {
+        return userRepository.findByRoleAndRestaurantId(User.Role.RIDER, restaurantId)
+                .stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
     
     private UserDTO toDTO(User user) {
         UserDTO dto = new UserDTO();
@@ -120,6 +128,7 @@ public class UserService {
         dto.setName(user.getName());
         dto.setRole(user.getRole());
         dto.setRestaurantId(user.getRestaurantId());
+        dto.setPhone(user.getPhone());
         dto.setIsApproved(user.getIsApproved());
         dto.setCreatedAt(user.getCreatedAt());
         return dto;

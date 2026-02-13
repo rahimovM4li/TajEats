@@ -72,7 +72,8 @@ export interface Order {
     customerAddress: string;
     items: CartItem[];
     total: number;
-    status: 'placed' | 'preparing' | 'on-the-way' | 'delivered' | 'cancelled';
+    status: 'placed' | 'approved' | 'preparing' | 'on-the-way' | 'delivered' | 'cancelled';
+    deliveryType: 'DELIVERY' | 'PICKUP';
     createdAt: string;
     estimatedDelivery?: string;
 }

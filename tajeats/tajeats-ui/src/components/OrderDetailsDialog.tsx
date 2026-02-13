@@ -24,6 +24,8 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({ order, trigger 
         switch (status) {
             case 'delivered':
                 return 'default';
+            case 'approved':
+                return 'secondary';
             case 'preparing':
                 return 'secondary';
             case 'on-the-way':
@@ -31,6 +33,16 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({ order, trigger 
             default:
                 return 'destructive';
         }
+    };
+
+    const isDelivery = order.deliveryType === 'DELIVERY';
+    const statusReached = (target: string) => {
+        const flow = isDelivery
+            ? ['placed', 'approved', 'on-the-way', 'delivered']
+            : ['placed', 'approved', 'delivered'];
+        const currentIdx = flow.indexOf(order.status);
+        const targetIdx = flow.indexOf(target);
+        return currentIdx >= targetIdx;
     };
 
     return (
@@ -170,49 +182,47 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({ order, trigger 
                     <Card>
                         <CardContent className="p-4">
                             <h3 className="font-semibold text-lg mb-4">Order Status</h3>
+                            {order.deliveryType && (
+                                <Badge variant="outline" className="mb-4">
+                                    {order.deliveryType === 'DELIVERY' ? 'Lieferung' : 'Selbstabholung'}
+                                </Badge>
+                            )}
                             <div className="space-y-4">
                                 <div className="flex items-start gap-3">
-                                    <div className={`w-3 h-3 rounded-full mt-1 ${order.status === 'placed' || order.status === 'preparing' ||
-                                            order.status === 'on-the-way' || order.status === 'delivered'
-                                            ? 'bg-primary' : 'bg-muted'
-                                        }`} />
+                                    <div className={`w-3 h-3 rounded-full mt-1 ${statusReached('placed') ? 'bg-primary' : 'bg-muted'}`} />
                                     <div>
-                                        <p className="font-medium">Order Placed</p>
+                                        <p className="font-medium">Bestellt</p>
                                         <p className="text-sm text-muted-foreground">
                                             {new Date(order.createdAt).toLocaleString()}
                                         </p>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-3">
-                                    <div className={`w-3 h-3 rounded-full mt-1 ${order.status === 'preparing' || order.status === 'on-the-way' ||
-                                            order.status === 'delivered'
-                                            ? 'bg-primary' : 'bg-muted'
-                                        }`} />
+                                    <div className={`w-3 h-3 rounded-full mt-1 ${statusReached('approved') ? 'bg-primary' : 'bg-muted'}`} />
                                     <div>
-                                        <p className="font-medium">Preparing</p>
+                                        <p className="font-medium">Bestätigt</p>
                                         <p className="text-sm text-muted-foreground">
-                                            Restaurant is preparing your order
+                                            Restaurant hat die Bestellung angenommen
                                         </p>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-3">
-                                    <div className={`w-3 h-3 rounded-full mt-1 ${order.status === 'on-the-way' || order.status === 'delivered'
-                                            ? 'bg-primary' : 'bg-muted'
-                                        }`} />
-                                    <div>
-                                        <p className="font-medium">On the Way</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            Order is out for delivery
-                                        </p>
+                                {isDelivery && (
+                                    <div className="flex items-start gap-3">
+                                        <div className={`w-3 h-3 rounded-full mt-1 ${statusReached('on-the-way') ? 'bg-primary' : 'bg-muted'}`} />
+                                        <div>
+                                            <p className="font-medium">Unterwegs</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                Bestellung wird geliefert
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                                 <div className="flex items-start gap-3">
-                                    <div className={`w-3 h-3 rounded-full mt-1 ${order.status === 'delivered' ? 'bg-primary' : 'bg-muted'
-                                        }`} />
+                                    <div className={`w-3 h-3 rounded-full mt-1 ${statusReached('delivered') ? 'bg-primary' : 'bg-muted'}`} />
                                     <div>
-                                        <p className="font-medium">Delivered</p>
+                                        <p className="font-medium">{isDelivery ? 'Geliefert' : 'Abgeholt'}</p>
                                         <p className="text-sm text-muted-foreground">
-                                            Order has been delivered
+                                            {isDelivery ? 'Bestellung wurde geliefert' : 'Bestellung wurde abgeholt'}
                                         </p>
                                     </div>
                                 </div>

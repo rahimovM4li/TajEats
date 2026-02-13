@@ -65,7 +65,8 @@ public class OrderService {
         order.setCustomerPhone(dto.getCustomerPhone());
         order.setCustomerAddress(dto.getCustomerAddress());
         order.setTotal(dto.getTotal());
-        order.setStatus(dto.getStatus());
+        order.setStatus("placed");
+        order.setDeliveryType(dto.getDeliveryType() != null ? dto.getDeliveryType() : "DELIVERY");
         order.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
         order.setEstimatedDelivery(Timestamp.valueOf(LocalDateTime.now().plusMinutes(40)));
 
@@ -108,6 +109,35 @@ public class OrderService {
         orderRepository.deleteById(id);
     }
 
+    // ----------------------- GET BY RESTAURANT ---------------------
+    public List<OrderDTO> getByRestaurant(Long restaurantId) {
+        return orderRepository.findByRestaurantIdOrderByCreatedAtDesc(restaurantId).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    // -------------------- GET ACTIVE BY RESTAURANT -----------------
+    public List<OrderDTO> getActiveByRestaurant(Long restaurantId) {
+        return orderRepository.findActiveOrdersByRestaurant(restaurantId).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    // --------------- GET ACTIVE DELIVERY BY RESTAURANT --------------
+    public List<OrderDTO> getActiveDeliveryByRestaurant(Long restaurantId) {
+        return orderRepository.findActiveDeliveryOrdersByRestaurant(restaurantId).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    // ----------------------- UPDATE STATUS -------------------------
+    public OrderDTO updateStatus(Long id, String status) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        order.setStatus(status);
+        return toDTO(orderRepository.save(order));
+    }
+
     // --------------------------- MAPPER ----------------------------
     private OrderDTO toDTO(Order order) {
         OrderDTO dto = new OrderDTO();
@@ -120,6 +150,7 @@ public class OrderService {
         dto.setCustomerAddress(order.getCustomerAddress());
         dto.setTotal(order.getTotal());
         dto.setStatus(order.getStatus());
+        dto.setDeliveryType(order.getDeliveryType());
         dto.setCreatedAt(order.getCreatedAt().toLocalDateTime());
         dto.setEstimatedDelivery(order.getEstimatedDelivery().toLocalDateTime());
 

@@ -44,4 +44,25 @@ public class OrderController {
         orderService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/restaurant/{restaurantId}")
+    public List<OrderDTO> getOrdersByRestaurant(@PathVariable Long restaurantId) {
+        return orderService.getByRestaurant(restaurantId);
+    }
+
+    @GetMapping("/restaurant/{restaurantId}/active")
+    public List<OrderDTO> getActiveOrdersByRestaurant(@PathVariable Long restaurantId) {
+        return orderService.getActiveByRestaurant(restaurantId);
+    }
+
+    @GetMapping("/restaurant/{restaurantId}/delivery")
+    public List<OrderDTO> getDeliveryOrdersByRestaurant(@PathVariable Long restaurantId) {
+        return orderService.getActiveDeliveryByRestaurant(restaurantId);
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<OrderDTO> updateOrderStatus(@PathVariable Long id, @RequestBody java.util.Map<String, String> body) {
+        String status = body.get("status");
+        return ResponseEntity.ok(orderService.updateStatus(id, status));
+    }
 }

@@ -54,9 +54,12 @@ public class User {
         updatedAt = LocalDateTime.now();
     }
     
+    private String phone;
+
     public enum Role {
         ADMIN,
         RESTAURANT_OWNER,
-        CUSTOMER
+        CUSTOMER,
+        RIDER
     }
 }

@@ -49,7 +49,7 @@ public class UserController {
     }
     
     @PutMapping("/{userId}/restaurant/{restaurantId}")
-    @PreAuthorize("hasRole('RESTAURANT_OWNER')")
+    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'RIDER')")
     public ResponseEntity<?> linkRestaurantToUser(@PathVariable Long userId, @PathVariable Long restaurantId) {
         try {
             UserDTO user = userService.linkRestaurant(userId, restaurantId);
@@ -57,5 +57,12 @@ public class UserController {
         } catch (InvalidCredentialsException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @GetMapping("/riders/restaurant/{restaurantId}")
+    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER', 'ADMIN')")
+    public ResponseEntity<List<UserDTO>> getRidersByRestaurant(@PathVariable Long restaurantId) {
+        List<UserDTO> riders = userService.getRidersByRestaurant(restaurantId);
+        return ResponseEntity.ok(riders);
     }
 }

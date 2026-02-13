@@ -40,7 +40,7 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
             }
             
-            // Customer accounts are auto-approved
+            // Customer and Rider accounts are auto-approved
             return ResponseEntity.status(HttpStatus.CREATED).body(user);
         } catch (UserAlreadyExistsException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
@@ -59,6 +59,14 @@ public class AuthController {
             if (user.getRole() == User.Role.RESTAURANT_OWNER && !user.getIsApproved()) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
                         Map.of("error", "Account is pending admin approval",
+                               "user", user)
+                );
+            }
+            
+            // Check if rider is approved
+            if (user.getRole() == User.Role.RIDER && !user.getIsApproved()) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                        Map.of("error", "Rider account is pending approval",
                                "user", user)
                 );
             }
