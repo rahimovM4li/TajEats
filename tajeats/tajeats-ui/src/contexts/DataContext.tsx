@@ -58,6 +58,7 @@ const convertOrderFromAPI = (dto: OrderDTO): Order => ({
     customerAddress: dto.customerAddress,
     total: dto.total,
     status: (dto.status as Order['status']) || 'placed',
+    deliveryType: (dto.deliveryType as Order['deliveryType']) || 'DELIVERY',
     createdAt: dto.createdAt || new Date().toISOString(),
     estimatedDelivery: dto.estimatedDelivery,
     items: [],

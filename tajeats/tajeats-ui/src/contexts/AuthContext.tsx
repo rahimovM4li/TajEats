@@ -8,8 +8,9 @@ export interface User {
     id: string;
     email: string;
     name: string;
-    role: 'admin' | 'restaurant' | 'customer';
+    role: 'admin' | 'restaurant' | 'customer' | 'rider';
     restaurantId?: string;
+    phone?: string;
     isApproved: boolean;
 }
 
@@ -37,7 +38,7 @@ interface AuthProviderProps {
 
 // Convert backend UserDTO to frontend User
 const convertUserFromDTO = (dto: UserDTO): User => {
-    let role: 'admin' | 'restaurant' | 'customer';
+    let role: 'admin' | 'restaurant' | 'customer' | 'rider';
     
     switch (dto.role) {
         case 'ADMIN':
@@ -45,6 +46,9 @@ const convertUserFromDTO = (dto: UserDTO): User => {
             break;
         case 'RESTAURANT_OWNER':
             role = 'restaurant';
+            break;
+        case 'RIDER':
+            role = 'rider';
             break;
         case 'CUSTOMER':
             role = 'customer';
@@ -59,6 +63,7 @@ const convertUserFromDTO = (dto: UserDTO): User => {
         name: dto.name,
         role,
         restaurantId: dto.restaurantId?.toString(),
+        phone: dto.phone,
         isApproved: dto.isApproved,
     };
 };

@@ -16,6 +16,7 @@ public class UserDTO {
     private String name;
     private User.Role role;
     private Long restaurantId;
+    private String phone;
     private Boolean isApproved;
     private LocalDateTime createdAt;
 }

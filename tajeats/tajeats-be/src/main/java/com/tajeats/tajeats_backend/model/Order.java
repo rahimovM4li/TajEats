@@ -28,6 +28,7 @@ public class Order {
     private String customerAddress;
     private BigDecimal total;
     private String status;
+    private String deliveryType; // DELIVERY or PICKUP
     private Timestamp createdAt;
     private Timestamp estimatedDelivery;
 

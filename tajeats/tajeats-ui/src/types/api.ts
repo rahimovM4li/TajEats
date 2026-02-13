@@ -59,6 +59,7 @@ export interface OrderDTO {
   customerAddress: string;
   total: number;
   status?: string;
+  deliveryType?: string; // DELIVERY or PICKUP
   createdAt?: string;
   estimatedDelivery?: string;
   items: CartItemDTO[];
@@ -103,8 +104,9 @@ export interface UserDTO {
   id: number;
   email: string;
   name: string;
-  role: 'ADMIN' | 'RESTAURANT_OWNER' | 'CUSTOMER';
+  role: 'ADMIN' | 'RESTAURANT_OWNER' | 'CUSTOMER' | 'RIDER';
   restaurantId?: number;
+  phone?: string;
   isApproved: boolean;
   createdAt: string;
 }
@@ -118,7 +120,8 @@ export interface RegisterRequest {
   name: string;
   email: string;
   password: string;
-  role: 'RESTAURANT_OWNER' | 'CUSTOMER';
+  phone?: string;
+  role: 'RESTAURANT_OWNER' | 'CUSTOMER' | 'RIDER';
 }
 
 export interface AuthResponse {

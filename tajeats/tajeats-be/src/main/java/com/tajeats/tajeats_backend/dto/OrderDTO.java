@@ -18,6 +18,7 @@ public class OrderDTO {
 
     private BigDecimal total;
     private String status;
+    private String deliveryType; // DELIVERY or PICKUP
 
     private LocalDateTime createdAt;
     private LocalDateTime estimatedDelivery;

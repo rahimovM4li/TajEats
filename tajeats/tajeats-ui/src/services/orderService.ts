@@ -30,7 +30,31 @@ export const orderService = {
    * Update order status
    */
   async updateStatus(id: number, status: string): Promise<OrderDTO> {
-    const response = await apiClient.put<OrderDTO>(`/orders/${id}`, { status });
+    const response = await apiClient.put<OrderDTO>(`/orders/${id}/status`, { status });
+    return response.data;
+  },
+
+  /**
+   * Get orders by restaurant
+   */
+  async getByRestaurant(restaurantId: number): Promise<OrderDTO[]> {
+    const response = await apiClient.get<OrderDTO[]>(`/orders/restaurant/${restaurantId}`);
+    return response.data;
+  },
+
+  /**
+   * Get active orders by restaurant
+   */
+  async getActiveByRestaurant(restaurantId: number): Promise<OrderDTO[]> {
+    const response = await apiClient.get<OrderDTO[]>(`/orders/restaurant/${restaurantId}/active`);
+    return response.data;
+  },
+
+  /**
+   * Get active delivery orders by restaurant (for riders)
+   */
+  async getDeliveryByRestaurant(restaurantId: number): Promise<OrderDTO[]> {
+    const response = await apiClient.get<OrderDTO[]>(`/orders/restaurant/${restaurantId}/delivery`);
     return response.data;
   },
 

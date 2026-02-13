@@ -12,5 +12,6 @@ public class RegisterRequest {
     private String name;
     private String email;
     private String password;
-    private User.Role role; // Only RESTAURANT_OWNER or CUSTOMER allowed
+    private String phone;
+    private User.Role role; // RESTAURANT_OWNER, CUSTOMER, or RIDER allowed
 }
