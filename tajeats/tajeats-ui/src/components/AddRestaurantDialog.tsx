@@ -23,25 +23,53 @@ interface AddRestaurantDialogProps {
     trigger?: React.ReactNode;
 }
 
+const DAYS = [
+    { key: 'openingMonday', label: 'Monday' },
+    { key: 'openingTuesday', label: 'Tuesday' },
+    { key: 'openingWednesday', label: 'Wednesday' },
+    { key: 'openingThursday', label: 'Thursday' },
+    { key: 'openingFriday', label: 'Friday' },
+    { key: 'openingSaturday', label: 'Saturday' },
+    { key: 'openingSunday', label: 'Sunday' },
+] as const;
+
+const defaultFormData = {
+    name: '',
+    description: '',
+    category: 'Traditional',
+    image: '',
+    deliveryTime: '30-45 min',
+    deliveryFee: 5,
+    minOrder: 15,
+    isOpen: true,
+    // Address
+    street: '',
+    houseNumber: '',
+    postalCode: '',
+    city: '',
+    // Contact
+    phone: '',
+    email: '',
+    website: '',
+    // Delivery mode
+    deliveryMode: 'BOTH' as 'DELIVERY' | 'PICKUP' | 'BOTH',
+    // Opening hours
+    openingMonday: '09:00-22:00',
+    openingTuesday: '09:00-22:00',
+    openingWednesday: '09:00-22:00',
+    openingThursday: '09:00-22:00',
+    openingFriday: '09:00-23:00',
+    openingSaturday: '10:00-23:00',
+    openingSunday: '',
+};
+
 const AddRestaurantDialog: React.FC<AddRestaurantDialogProps> = ({ trigger }) => {
     const { addRestaurant } = useData();
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [createdRestaurantId, setCreatedRestaurantId] = useState<number | null>(null);
-    
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        category: 'Traditional',
-        image: '',
-        deliveryTime: '30-45 min',
-        deliveryFee: 5,
-        minOrder: 15,
-        address: '',
-        phone: '',
-        isOpen: true,
-    });
+    const [formData, setFormData] = useState({ ...defaultFormData });
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -65,7 +93,23 @@ const AddRestaurantDialog: React.FC<AddRestaurantDialogProps> = ({ trigger }) =>
                 reviewCount: 0,
                 deliveryTime: formData.deliveryTime,
                 deliveryFee: formData.deliveryFee,
+                minOrder: formData.minOrder,
                 isOpen: formData.isOpen,
+                street: formData.street,
+                houseNumber: formData.houseNumber,
+                postalCode: formData.postalCode,
+                city: formData.city,
+                phone: formData.phone,
+                email: formData.email,
+                website: formData.website || undefined,
+                deliveryMode: formData.deliveryMode,
+                openingMonday: formData.openingMonday || undefined,
+                openingTuesday: formData.openingTuesday || undefined,
+                openingWednesday: formData.openingWednesday || undefined,
+                openingThursday: formData.openingThursday || undefined,
+                openingFriday: formData.openingFriday || undefined,
+                openingSaturday: formData.openingSaturday || undefined,
+                openingSunday: formData.openingSunday || undefined,
             });
 
             setCreatedRestaurantId(Number(created.id));
@@ -75,19 +119,7 @@ const AddRestaurantDialog: React.FC<AddRestaurantDialogProps> = ({ trigger }) =>
                 description: `${formData.name} has been successfully added. You can now upload an image.`,
             });
 
-            // Reset form
-            setFormData({
-                name: '',
-                description: '',
-                category: 'Traditional',
-                image: '',
-                deliveryTime: '30-45 min',
-                deliveryFee: 5,
-                minOrder: 15,
-                address: '',
-                phone: '',
-                isOpen: true,
-            });
+            setFormData({ ...defaultFormData });
             setOpen(false);
         } catch (error: any) {
             toast({
@@ -110,131 +142,143 @@ const AddRestaurantDialog: React.FC<AddRestaurantDialogProps> = ({ trigger }) =>
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Add New Restaurant</DialogTitle>
                     <DialogDescription>
                         Fill in the details to add a new restaurant to the platform.
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Restaurant Name *</Label>
-                            <Input
-                                id="name"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleInputChange}
-                                required
-                                placeholder="Enter restaurant name"
-                            />
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Basic Info */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Basic Info</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Restaurant Name *</Label>
+                                <Input id="name" name="name" value={formData.name} onChange={handleInputChange} required placeholder="Enter restaurant name" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="category">Category *</Label>
+                                <Select value={formData.category} onValueChange={(v) => setFormData(prev => ({ ...prev, category: v }))}>
+                                    <SelectTrigger id="category"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Traditional">Traditional</SelectItem>
+                                        <SelectItem value="Fine Dining">Fine Dining</SelectItem>
+                                        <SelectItem value="Fast Food">Fast Food</SelectItem>
+                                        <SelectItem value="Cafe">Cafe</SelectItem>
+                                        <SelectItem value="Bakery">Bakery</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="category">Category *</Label>
-                            <Select
-                                value={formData.category}
-                                onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-                            >
-                                <SelectTrigger id="category">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Traditional">Traditional</SelectItem>
-                                    <SelectItem value="Fine Dining">Fine Dining</SelectItem>
-                                    <SelectItem value="Fast Food">Fast Food</SelectItem>
-                                    <SelectItem value="Cafe">Cafe</SelectItem>
-                                    <SelectItem value="Bakery">Bakery</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="description">Description *</Label>
-                        <Textarea
-                            id="description"
-                            name="description"
-                            value={formData.description}
-                            onChange={handleInputChange}
-                            required
-                            placeholder="Describe the restaurant"
-                            rows={3}
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="address">Address *</Label>
-                            <Input
-                                id="address"
-                                name="address"
-                                value={formData.address}
-                                onChange={handleInputChange}
-                                required
-                                placeholder="Restaurant address"
-                            />
+                            <Label htmlFor="description">Description *</Label>
+                            <Textarea id="description" name="description" value={formData.description} onChange={handleInputChange} required placeholder="Describe the restaurant" rows={3} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="phone">Phone *</Label>
-                            <Input
-                                id="phone"
-                                name="phone"
-                                value={formData.phone}
-                                onChange={handleInputChange}
-                                required
-                                placeholder="+992 XX XXX-XXXX"
-                            />
+                            <Label htmlFor="image">Image URL</Label>
+                            <Input id="image" name="image" value={formData.image} onChange={handleInputChange} placeholder="https://example.com/image.jpg" />
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="image">Image URL</Label>
-                        <Input
-                            id="image"
-                            name="image"
-                            value={formData.image}
-                            onChange={handleInputChange}
-                            placeholder="https://example.com/image.jpg"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="deliveryTime">Delivery Time</Label>
-                            <Input
-                                id="deliveryTime"
-                                name="deliveryTime"
-                                value={formData.deliveryTime}
-                                onChange={handleInputChange}
-                                placeholder="30-45 min"
-                            />
+                    {/* Address */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Address</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="street">Street *</Label>
+                                <Input id="street" name="street" value={formData.street} onChange={handleInputChange} required placeholder="Rudaki Avenue" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="houseNumber">House Number *</Label>
+                                <Input id="houseNumber" name="houseNumber" value={formData.houseNumber} onChange={handleInputChange} required placeholder="42" />
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="deliveryFee">Delivery Fee ($)</Label>
-                            <Input
-                                id="deliveryFee"
-                                name="deliveryFee"
-                                type="number"
-                                step="0.01"
-                                value={formData.deliveryFee}
-                                onChange={handleInputChange}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="minOrder">Min Order ($)</Label>
-                            <Input
-                                id="minOrder"
-                                name="minOrder"
-                                type="number"
-                                step="0.01"
-                                value={formData.minOrder}
-                                onChange={handleInputChange}
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="postalCode">PLZ *</Label>
+                                <Input id="postalCode" name="postalCode" value={formData.postalCode} onChange={handleInputChange} required placeholder="734000" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="city">City *</Label>
+                                <Input id="city" name="city" value={formData.city} onChange={handleInputChange} required placeholder="Dushanbe" />
+                            </div>
                         </div>
                     </div>
 
-                    {/* Image Upload - Only show after restaurant is created */}
+                    {/* Contact */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Contact</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="phone">Phone *</Label>
+                                <Input id="phone" name="phone" value={formData.phone} onChange={handleInputChange} required placeholder="+992 XX XXX-XXXX" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="email">E-Mail *</Label>
+                                <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} required placeholder="info@restaurant.com" />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="website">Website (optional)</Label>
+                            <Input id="website" name="website" value={formData.website} onChange={handleInputChange} placeholder="https://www.restaurant.com" />
+                        </div>
+                    </div>
+
+                    {/* Delivery & Fees */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Delivery & Fees</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="deliveryMode">Delivery Mode *</Label>
+                                <Select value={formData.deliveryMode} onValueChange={(v) => setFormData(prev => ({ ...prev, deliveryMode: v as any }))}>
+                                    <SelectTrigger id="deliveryMode"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="DELIVERY">Delivery only</SelectItem>
+                                        <SelectItem value="PICKUP">Pickup only</SelectItem>
+                                        <SelectItem value="BOTH">Delivery & Pickup</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="deliveryTime">Delivery Time</Label>
+                                <Input id="deliveryTime" name="deliveryTime" value={formData.deliveryTime} onChange={handleInputChange} placeholder="30-45 min" />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="deliveryFee">Delivery Fee ($)</Label>
+                                <Input id="deliveryFee" name="deliveryFee" type="number" step="0.01" value={formData.deliveryFee} onChange={handleInputChange} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="minOrder">Min Order ($)</Label>
+                                <Input id="minOrder" name="minOrder" type="number" step="0.01" value={formData.minOrder} onChange={handleInputChange} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Opening Hours */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Opening Hours</h3>
+                        <p className="text-xs text-muted-foreground">Format: HH:MM-HH:MM (e.g. 09:00-22:00). Leave empty for closed.</p>
+                        <div className="grid grid-cols-2 gap-3">
+                            {DAYS.map(({ key, label }) => (
+                                <div key={key} className="flex items-center gap-2">
+                                    <Label className="w-28 text-sm">{label}</Label>
+                                    <Input
+                                        name={key}
+                                        value={(formData as any)[key]}
+                                        onChange={handleInputChange}
+                                        placeholder="09:00-22:00"
+                                        className="flex-1"
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Image Upload */}
                     {createdRestaurantId && (
                         <ImageUpload
                             currentImageUrl={formData.image}
@@ -246,19 +290,12 @@ const AddRestaurantDialog: React.FC<AddRestaurantDialogProps> = ({ trigger }) =>
                     )}
 
                     <div className="flex items-center space-x-2">
-                        <Switch
-                            id="isOpen"
-                            checked={formData.isOpen}
-                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isOpen: checked }))}
-                        />
+                        <Switch id="isOpen" checked={formData.isOpen} onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isOpen: checked }))} />
                         <Label htmlFor="isOpen">Restaurant is open</Label>
                     </div>
 
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => {
-                            setOpen(false);
-                            setCreatedRestaurantId(null);
-                        }}>
+                        <Button type="button" variant="outline" onClick={() => { setOpen(false); setCreatedRestaurantId(null); }}>
                             {createdRestaurantId ? 'Close' : 'Cancel'}
                         </Button>
                         {!createdRestaurantId && (

@@ -10,8 +10,32 @@ export interface RestaurantDTO {
   reviewCount: number;
   deliveryTime: string;
   deliveryFee: number;
+  minOrder?: number;
   description: string;
   isOpen: boolean;
+
+  // Address
+  street?: string;
+  houseNumber?: string;
+  postalCode?: string;
+  city?: string;
+
+  // Contact
+  phone?: string;
+  email?: string;
+  website?: string;
+
+  // Delivery mode: DELIVERY | PICKUP | BOTH
+  deliveryMode?: string;
+
+  // Opening hours per weekday (e.g. "09:00-22:00", null = closed)
+  openingMonday?: string;
+  openingTuesday?: string;
+  openingWednesday?: string;
+  openingThursday?: string;
+  openingFriday?: string;
+  openingSaturday?: string;
+  openingSunday?: string;
 }
 
 export interface DishDTO {

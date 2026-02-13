@@ -8,8 +8,32 @@ export interface Restaurant {
     reviewCount: number;
     deliveryTime: string;
     deliveryFee: number;
+    minOrder?: number;
     description: string;
     isOpen: boolean;
+
+    // Address
+    street?: string;
+    houseNumber?: string;
+    postalCode?: string;
+    city?: string;
+
+    // Contact
+    phone?: string;
+    email?: string;
+    website?: string;
+
+    // Delivery mode
+    deliveryMode?: 'DELIVERY' | 'PICKUP' | 'BOTH';
+
+    // Opening hours per weekday
+    openingMonday?: string;
+    openingTuesday?: string;
+    openingWednesday?: string;
+    openingThursday?: string;
+    openingFriday?: string;
+    openingSaturday?: string;
+    openingSunday?: string;
 }
 
 export interface Dish {
